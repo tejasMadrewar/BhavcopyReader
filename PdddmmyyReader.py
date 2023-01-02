@@ -30,7 +30,7 @@ def clean_df(date, df):
         {"TRADES": "float", "HI_52_WK": "float", "LO_52_WK": "float"})
     # make DATE1 column
     df.insert(0, "DATE1", value=date)
-    df = df.astype({"DATE1": "datetime64"})
+    df = df.astype({"DATE1": "datetime64[ns]"})
     # remove Unnamed columns
     df = df.loc[:, ~df.columns.str.match('Unnamed')]
     return df
@@ -69,7 +69,7 @@ def day_to_df(day_date):
     df = clean_df(day_date, df)
     # print(day_date, ": Found")
     print(".", day_date)
-    #print(".", end="")
+    # print(".", end="")
     return df
 
 
