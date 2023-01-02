@@ -41,8 +41,6 @@ def get_new_data(con, table_name):
 
 
 def update_db(db_name, table_name="raw_data"):
-    db_name = "data.db"
-    table_name = "data"
     con = db.connect(
         db_name, detect_types=db.PARSE_DECLTYPES | db.PARSE_COLNAMES)
     # create_test_db(table_name, con)
@@ -59,7 +57,7 @@ def update_db(db_name, table_name="raw_data"):
 
 
 def main():
-    update_db("test.db", "data")
+    update_db("data.db", "data")
 
 
 if __name__ == "__main__":

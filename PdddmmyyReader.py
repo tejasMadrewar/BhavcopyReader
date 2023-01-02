@@ -7,6 +7,7 @@ import os.path
 from pathlib import Path
 import pandas as pd
 
+from sqlalchemy import create_engine
 import timeit
 
 BHAV_CPY_FLDER_PTH = "C:\\Users\\TEJAS\\Downloads\\PR00_bhavcopy_data_all\\"
@@ -33,6 +34,7 @@ def clean_df(date, df):
     df = df.astype({"DATE1": "datetime64[ns]"})
     # remove Unnamed columns
     df = df.loc[:, ~df.columns.str.match('Unnamed')]
+    df = df.rename(columns={"SECURITY": "SECURITY1"})
     return df
 
 
@@ -99,6 +101,19 @@ def df_to_sqlite(df, db_name: str):
     print(f"\nWriting to {db_name} finished.")
 
 
+def df_to_postgres(df: pd.DataFrame):
+    print("writing to postgres")
+    print(df.dtypes)
+    engine = create_engine(
+        'postgresql+psycopg2://postgres:123456789@localhost:5432/NSE_DATA')
+
+    conn = engine.raw_connection()
+    cur = conn.cursor()
+    df.to_sql("raw_data", engine, if_exists="replace", index=False)
+    conn.commit()
+    print("Finished writing to postgres")
+
+
 def main():
     # print(timeit.timeit('get_data_for_last_n_days(100)',
     # globals=globals(), number=10))
@@ -109,7 +124,8 @@ def main():
     days = [start - timedelta(days=i)
             for i in range(0, 366*15)]
     df = days_to_df(days)
-    df_to_sqlite(df, "data")
+    # df_to_sqlite(df, "data")
+    df_to_postgres(df)
 
 
 if __name__ == "__main__":
