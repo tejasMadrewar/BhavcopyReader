@@ -29,11 +29,10 @@ def get_last_update_date(con, table_name):
 
 def get_new_data(con, table_name):
     last_update_date = get_last_update_date(con, table_name)
-    print(f"last updated date: {last_update_date}")
+    print(f"Last updated date: {last_update_date.date()}")
     today = datetime.datetime.today().date()
     days = [last_update_date + timedelta(i)
             for i in range((today-last_update_date.date()).days)]
-    print(days)
     # download PR zip files
     Prdownloader.PRZip_download_for_days(days, pdReader.BHAV_CPY_FLDER_PTH)
     df = pdReader.days_to_df(days)
@@ -42,7 +41,7 @@ def get_new_data(con, table_name):
 
 
 def update_db(db_name, table_name="raw_data"):
-    db_name = "test.db"
+    db_name = "data.db"
     table_name = "data"
     con = db.connect(
         db_name, detect_types=db.PARSE_DECLTYPES | db.PARSE_COLNAMES)
@@ -50,11 +49,13 @@ def update_db(db_name, table_name="raw_data"):
     # update test db
     df = get_new_data(con, table_name)
     if df.empty:
-        print("No update")
+        print("No update to database.")
     else:
-        print(df)
+        new_days = df.DATE1.nunique()
+        print(f"Updating for {new_days} days...")
         df.to_sql(table_name, con, if_exists="append",
                   chunksize=1000, index=False)
+        print("Update completed.")
 
 
 def main():
