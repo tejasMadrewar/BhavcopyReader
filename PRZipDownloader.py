@@ -15,16 +15,18 @@ def PRZip_download_for_day(day, folder_location):
         return
     # https://www1.nseindia.com/archives/equities/bhavcopy/pr/PR061222.zip
     url = f"https://www1.nseindia.com/archives/equities/bhavcopy/pr/{PRZip_filename}"
-    try:
-        r = requests.get(url, timeout=2)
-        if r.status_code == 404:
-            print(f"\tCheck if its a Holiday {PRZip_filename}")
-            return
-        with open(file_path, "wb") as f:
-            f.write(r.content)
-        print("\tSuccess: ", url, r.status_code)
-    except Exception as e:
-        print("%s" % (format(e)) + " Or Check if Its a Holiday")
+    for i in range(5):
+        try:
+            r = requests.get(url, timeout=5)
+            if r.status_code == 404:
+                print(f"\tCheck if its a Holiday {PRZip_filename}")
+                return
+            with open(file_path, "wb") as f:
+                f.write(r.content)
+            print("\tSuccess: ", url, r.status_code)
+            break
+        except Exception as e:
+            print("%s" % (format(e)) + " Or Check if Its a Holiday. " + i)
 
 
 def PRZip_download_for_days(days, folder_location):
