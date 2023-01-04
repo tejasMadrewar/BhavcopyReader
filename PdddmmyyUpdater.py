@@ -5,6 +5,7 @@ from datetime import timedelta
 import sqlite3 as db
 from sqlalchemy import create_engine
 
+import config as cfg
 import PdddmmyyReader as pdReader
 import PRZipDownloader as Prdownloader
 
@@ -33,7 +34,7 @@ def get_new_data(con, table_name):
     days = [last_update_date + timedelta(i)
             for i in range((today-last_update_date.date()).days)]
     # download PR zip files
-    Prdownloader.PRZip_download_for_days(days, pdReader.BHAV_CPY_FLDER_PTH)
+    Prdownloader.PRZip_download_for_days(days, cfg.DOWNLOAD_FOLDER)
     df = pdReader.days_to_df(days)
     df = df[df.DATE1 > last_update_date]
     return df

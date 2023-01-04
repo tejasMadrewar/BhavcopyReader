@@ -2,7 +2,7 @@ import datetime
 import os.path
 import requests
 
-import PdddmmyyReader as PRReader
+import config as cfg
 
 
 def PRZip_download_for_day(day, folder_location):
@@ -44,7 +44,7 @@ def PRZip_download_last_n_days(n, folder_location):
 
 
 def main():
-    PRZip_download_last_n_days(10, PRReader.BHAV_CPY_FLDER_PTH)
+    PRZip_download_last_n_days(10, cfg.DOWNLOAD_FOLDER)
 
 
 if __name__ == "__main__":

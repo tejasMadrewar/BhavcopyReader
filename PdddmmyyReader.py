@@ -10,7 +10,7 @@ import pandas as pd
 from sqlalchemy import create_engine
 import timeit
 
-BHAV_CPY_FLDER_PTH = "C:\\Users\\TEJAS\\Downloads\\PR00_bhavcopy_data_all\\"
+import config as cfg
 
 # zip files with errors
 # 2018-01-02 same data as 2019-01-02
@@ -54,7 +54,7 @@ def zipfile_to_pd_df(date, zipfile_obj):
 
 def date_to_zipfile(date):
     PRZipFileName = date.strftime("PR%d%m%y.zip")
-    zipFilePath = os.path.join(BHAV_CPY_FLDER_PTH, PRZipFileName)
+    zipFilePath = os.path.join(cfg.DOWNLOAD_FOLDER, PRZipFileName)
     if not Path(zipFilePath).is_file():
         return
     z = zipfile.ZipFile(zipFilePath)
@@ -104,11 +104,8 @@ def df_to_sqlite(df, db_name: str):
 def df_to_postgres(df: pd.DataFrame):
     print("writing to postgres")
     print(df.dtypes)
-    engine = create_engine(
-        'postgresql+psycopg2://postgres:123456789@localhost:5432/NSE_DATA')
-
+    engine = cfg.SQL_CON
     conn = engine.raw_connection()
-    cur = conn.cursor()
     df.to_sql("raw_data", engine, if_exists="replace", index=False)
     conn.commit()
     print("Finished writing to postgres")
