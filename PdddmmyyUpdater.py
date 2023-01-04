@@ -40,12 +40,6 @@ def get_new_data(con, table_name):
     return df
 
 
-def get_postgres_engine():
-    engine = create_engine(
-        'postgresql+psycopg2://postgres:123456789@localhost:5432/NSE_DATA')
-    return engine
-
-
 def update_db(con, table_name="raw_data"):
     # create_test_db(table_name, con)
     # update test db
@@ -61,7 +55,7 @@ def update_db(con, table_name="raw_data"):
 
 
 def main():
-    con = get_postgres_engine()
+    con = cfg.SQL_CON
     update_db(con)
 
 
