@@ -2,8 +2,6 @@ import pandas as pd
 
 import datetime
 from datetime import timedelta
-import sqlite3 as db
-from sqlalchemy import create_engine
 
 import config as cfg
 import PdddmmyyReader as pdReader
