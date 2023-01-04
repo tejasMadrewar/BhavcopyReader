@@ -129,10 +129,6 @@ def main():
     # globals=globals(), number=10))
     # create_table()
     df = get_equity_data("TCS")
-    # print(df)
-    # print(df.DATE1.max().date(), df.DATE1.min().date())
-    # print(df.SERIES.unique())
-    # df.to_csv("test.csv", index=False)
 
 
 if __name__ == "__main__":
