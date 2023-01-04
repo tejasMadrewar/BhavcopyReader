@@ -7,9 +7,6 @@ import os.path
 from pathlib import Path
 import pandas as pd
 
-from sqlalchemy import create_engine
-import timeit
-
 import config as cfg
 
 # zip files with errors
