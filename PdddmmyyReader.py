@@ -6,6 +6,7 @@ import sqlite3 as db
 import os.path
 from pathlib import Path
 import pandas as pd
+import timeit
 
 import config as cfg
 
@@ -108,18 +109,30 @@ def df_to_postgres(df: pd.DataFrame):
     print("Finished writing to postgres")
 
 
-def main():
-    # print(timeit.timeit('get_data_for_last_n_days(100)',
-    # globals=globals(), number=10))
+def get_equity_data(symbol_name: str):
+    condition = f'"SYMBOL"= \'{symbol_name}\' and ("SERIES" in (\'EQ\',\'BE\'))'
+    df = pd.read_sql_query(
+        f'select * from raw_data where {condition} order by "DATE1" desc', cfg.SQL_CON)
+    return df
 
-    # df = get_data_for_year(2022)
-    # df_to_sqlite(df, "2022")
+
+def create_table():
     start = datetime.datetime.today().date()
     days = [start - timedelta(days=i)
             for i in range(0, 366*15)]
     df = days_to_df(days)
-    # df_to_sqlite(df, "data")
     df_to_postgres(df)
+
+
+def main():
+    # print(timeit.timeit('get_equity_data("TCS")',
+    # globals=globals(), number=10))
+    # create_table()
+    df = get_equity_data("TCS")
+    # print(df)
+    # print(df.DATE1.max().date(), df.DATE1.min().date())
+    # print(df.SERIES.unique())
+    # df.to_csv("test.csv", index=False)
 
 
 if __name__ == "__main__":
