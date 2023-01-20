@@ -50,17 +50,17 @@ def zipfile_to_pd_df(date, zipfile_obj):
     return df
 
 
-def date_to_zipfile(date):
+def date_to_zipfile(date, folder):
     PRZipFileName = date.strftime("PR%d%m%y.zip")
-    zipFilePath = os.path.join(cfg.DOWNLOAD_FOLDER, PRZipFileName)
+    zipFilePath = os.path.join(folder, PRZipFileName)
     if not Path(zipFilePath).is_file():
         return
     z = zipfile.ZipFile(zipFilePath)
     return z
 
 
-def day_to_df(day_date):
-    z = date_to_zipfile(day_date)
+def day_to_df(day_date, folder):
+    z = date_to_zipfile(day_date, folder)
     if z == None or day_date in BLACK_LIST:
         # print(day_date, ": Not found")
         print("*", day_date)
@@ -73,62 +73,51 @@ def day_to_df(day_date):
     return df
 
 
-def days_to_df(days):
-    return pd.concat([day_to_df(i) for i in days], ignore_index=True)
+def days_to_df(days, folder):
+    return pd.concat([day_to_df(i, folder) for i in days], ignore_index=True)
 
 
-def get_data_for_last_n_days(n):
+def get_data_for_last_n_days(n, folder):
     d = datetime.datetime.now().date()
     days = [d - timedelta(days=i) for i in range(0, n)]
-    return days_to_df(days)
+    return days_to_df(days, folder)
 
 
-def get_data_for_year(year):
+def get_data_for_year(year, folder):
     start = datetime.date(year, 1, 1)
     days = [start - timedelta(days=i)
             for i in range(0, 365 + calendar.isleap(start.year))]
-    return days_to_df(days)
+    return days_to_df(days, folder)
 
 
-def df_to_sqlite(df, db_name: str):
-    con = db.connect(db_name + ".db")
-    print(f"\nWriting to {db_name}...", end="\r")
-    df.to_sql(db_name, con, if_exists="replace", index=False)
-    con.execute("VACUUM")
-    con.close()
-    print(f"\nWriting to {db_name} finished.")
-
-
-def df_to_postgres(df: pd.DataFrame):
-    print("writing to postgres")
+def df_to_db(df: pd.DataFrame, con):
+    print("Writing to Database")
     print(df.dtypes)
-    engine = cfg.SQL_CON
-    conn = engine.raw_connection()
-    df.to_sql("raw_data", engine, if_exists="replace", index=False)
-    conn.commit()
-    print("Finished writing to postgres")
+    df.to_sql("raw_data", con, if_exists="replace", index=False)
+    con.commit()
+    print("Finished writing to Database")
 
 
-def get_equity_data(symbol_name: str):
+def get_equity_data(symbol_name: str, conn):
     condition = f'"SYMBOL"= \'{symbol_name}\' and ("SERIES" in (\'EQ\',\'BE\'))'
     df = pd.read_sql_query(
-        f'select * from raw_data where {condition} order by "DATE1" desc', cfg.SQL_CON)
+        f'select * from raw_data where {condition} order by "DATE1" desc', conn)
     return df
 
 
-def create_table():
+def create_table(folder, con):
     start = datetime.datetime.today().date()
     days = [start - timedelta(days=i)
             for i in range(0, 366*15)]
-    df = days_to_df(days)
-    df_to_postgres(df)
+    df = days_to_df(days, folder)
+    df_to_db(df, con)
 
 
 def main():
-    # print(timeit.timeit('get_equity_data("TCS")',
+    # print(timeit.timeit('get_equity_data("TCS",cfg.SQL_CON)',
     # globals=globals(), number=10))
-    # create_table()
-    df = get_equity_data("TCS")
+    # create_table(cfg.folder,cfg.con)
+    df = get_equity_data("TCS", cfg.SQL_CON)
 
 
 if __name__ == "__main__":

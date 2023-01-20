@@ -26,7 +26,7 @@ def PRZip_download_for_day(day, folder_location):
             print("\tSuccess: ", url, r.status_code)
             break
         except Exception as e:
-            print("%s" % (format(e)) + " Or Check if Its a Holiday. " + i)
+            print("%s" % (format(e)) + " Or Check if Its a Holiday. " + str(i))
 
 
 def PRZip_download_for_days(days, folder_location):
@@ -44,7 +44,7 @@ def PRZip_download_last_n_days(n, folder_location):
 
 
 def main():
-    PRZip_download_last_n_days(10, cfg.DOWNLOAD_FOLDER)
+    PRZip_download_last_n_days(30, cfg.DOWNLOAD_FOLDER)
 
 
 if __name__ == "__main__":
