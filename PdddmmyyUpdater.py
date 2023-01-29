@@ -25,23 +25,23 @@ def get_last_update_date(con, table_name):
     return df.iloc[0, 0].to_pydatetime()
 
 
-def get_new_data(con, table_name):
+def get_new_data(con, folder, table_name):
     last_update_date = get_last_update_date(con, table_name)
     print(f"Last updated date[{table_name}]: {last_update_date.date()}")
     today = datetime.datetime.today().date()
     days = [last_update_date + timedelta(i)
             for i in range((today-last_update_date.date()).days)]
     # download PR zip files
-    Prdownloader.PRZip_download_for_days(days, cfg.DOWNLOAD_FOLDER)
-    df = pdReader.days_to_df(days)
+    Prdownloader.PRZip_download_for_days(days, folder)
+    df = pdReader.days_to_df(days, folder)
     df = df[df.DATE1 > last_update_date]
     return df
 
 
-def update_db(con, table_name="raw_data"):
+def update_db(con, folder, table_name="raw_data"):
     # create_test_db(table_name, con)
     # update test db
-    df = get_new_data(con, table_name)
+    df = get_new_data(con, folder, table_name)
     if df.empty:
         print(f"No update to database.[{table_name}]")
     else:
@@ -54,7 +54,8 @@ def update_db(con, table_name="raw_data"):
 
 def main():
     con = cfg.SQL_CON
-    update_db(con)
+    folder = cfg.DOWNLOAD_FOLDER
+    update_db(con, folder)
 
 
 if __name__ == "__main__":
