@@ -45,8 +45,7 @@ def update_db(con, folder, table_name="raw_data"):
     if df.empty:
         print(f"No update to database.[{table_name}]")
     else:
-        new_days = df.DATE1.nunique()
-        print(f"Updating for {new_days} days...")
+        print(f"Updating for {df.DATE1.nunique()} days...")
         df.to_sql(table_name, con, if_exists="append",
                   chunksize=1000, index=False)
         print(f"Update completed.[{table_name}]")

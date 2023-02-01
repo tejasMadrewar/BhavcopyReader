@@ -5,8 +5,10 @@ import zipfile
 import sqlite3 as db
 import os.path
 from pathlib import Path
-import pandas as pd
 import timeit
+
+import pandas as pd
+from tqdm import tqdm
 
 import config as cfg
 
@@ -16,23 +18,26 @@ BLACK_LIST = [datetime.date(2018, 1, 2)]
 
 
 def clean_df(date, df):
-    df = df.astype(
-        {"MKT": "string", "SERIES": "string", "SYMBOL": "string"})
     # remove cell with " " in MKT column
     df = df[~df["MKT"].eq(" ")]
-    df = df.astype({"SECURITY": "string"})
-    df = df.astype({"PREV_CL_PR": "float", "OPEN_PRICE": "float",
-                   "HIGH_PRICE": "float", "LOW_PRICE": "float", "CLOSE_PRICE": "float"})
+    # remove Unnamed columns
+    df = df.loc[:, ~df.columns.str.match('Unnamed')]
+    df = df.astype({"PREV_CL_PR": "float32", "OPEN_PRICE": "float32",
+                   "HIGH_PRICE": "float32", "LOW_PRICE": "float32", "CLOSE_PRICE": "float32"})
     df = df.astype({"NET_TRDVAL": "float", "NET_TRDQTY": "float"})
-    df = df.astype({"IND_SEC": "string", "CORP_IND": "string"})
     df = df.astype(
-        {"TRADES": "float", "HI_52_WK": "float", "LO_52_WK": "float"})
+        {"TRADES": "float", "HI_52_WK": "float32", "LO_52_WK": "float32"})
     # make DATE1 column
     df.insert(0, "DATE1", value=date)
     df = df.astype({"DATE1": "datetime64[ns]"})
-    # remove Unnamed columns
-    df = df.loc[:, ~df.columns.str.match('Unnamed')]
     df = df.rename(columns={"SECURITY": "SECURITY1"})
+    # make all column headers lowercase
+    df.columns = map(str.lower, df.columns)
+    # make columns as categories
+    df = df.astype({"security1": "string"})
+    df = df.astype(
+        {"mkt": "string", "series": "string", "symbol": "string"})
+    df = df.astype({"ind_sec": "string", "corp_ind": "string"})
     return df
 
 
@@ -63,18 +68,25 @@ def day_to_df(day_date, folder):
     z = date_to_zipfile(day_date, folder)
     if z == None or day_date in BLACK_LIST:
         # print(day_date, ": Not found")
-        print("*", day_date)
+        # print("*", day_date)
         return pd.DataFrame()
     df = zipfile_to_pd_df(day_date, z)
     df = clean_df(day_date, df)
     # print(day_date, ": Found")
-    print(".", day_date)
+    # print(".", day_date)
     # print(".", end="")
     return df
 
 
 def days_to_df(days, folder):
-    return pd.concat([day_to_df(i, folder) for i in days], ignore_index=True)
+    df = pd.concat([day_to_df(i, folder)
+                   for i in tqdm(days)], ignore_index=True)
+    # make columns as categories
+    df = df.astype({"security1": "category"})
+    df = df.astype(
+        {"mkt": "category", "series": "category", "symbol": "category"})
+    df = df.astype({"ind_sec": "category", "corp_ind": "category"})
+    return df
 
 
 def get_data_for_last_n_days(n, folder):
@@ -85,17 +97,25 @@ def get_data_for_last_n_days(n, folder):
 
 def get_data_for_year(year, folder):
     start = datetime.date(year, 1, 1)
-    days = [start - timedelta(days=i)
+    days = [start + timedelta(days=i)
             for i in range(0, 365 + calendar.isleap(start.year))]
     return days_to_df(days, folder)
 
 
-def df_to_db(df: pd.DataFrame, con):
-    print("Writing to Database")
-    print(df.dtypes)
-    df.to_sql("raw_data", con, if_exists="replace", index=False)
-    con.commit()
-    print("Finished writing to Database")
+def df_to_db(df: pd.DataFrame, engine, table_name="raw_data"):
+    if engine.has_table(table_name):
+        # remove duplicate data
+        prev_dts = pd.read_sql_query(
+            f"SELECT DISTINCT(date1) from {table_name}", engine)
+        prev_dts["status"] = True
+        df = pd.merge(df, prev_dts, on="date1", how="left")
+        df = df[df.status.isna()].drop(["status"], axis=1)
+    if df.empty:
+        print("No new data")
+    else:
+        df.to_sql(table_name, engine, if_exists="append",
+                  index=False, chunksize=10000)
+        print(f"Added {len(df.date1.unique())} new days [{table_name}]")
 
 
 def get_equity_data(symbol_name: str, conn):
@@ -105,19 +125,28 @@ def get_equity_data(symbol_name: str, conn):
     return df
 
 
-def create_table(folder, con):
-    start = datetime.datetime.today().date()
-    days = [start - timedelta(days=i)
-            for i in range(0, 366*15)]
+def update_table(folder, engine, table_name="raw_data"):
+    last_updated = datetime.date(year=2011, month=1, day=1)
+    if engine.has_table(table_name):
+        last_dt = pd.read_sql_query(
+            f"SELECT MAX(date1) from {table_name}", engine)
+        if  not (last_dt.iloc[0, 0] == None):
+            last_updated = last_dt.iloc[0, 0].to_pydatetime().date()
+    print(f"last updated {last_updated}")
+    tday = datetime.datetime.today().date()
+    days = [last_updated + timedelta(days=i)
+            for i in range((tday-last_updated).days+1)]
+    # days = [start - timedelta(days=i)
+    #        for i in range(0, int(366*year))]
     df = days_to_df(days, folder)
-    df_to_db(df, con)
+    df_to_db(df, engine)
 
 
 def main():
     # print(timeit.timeit('get_equity_data("TCS",cfg.SQL_CON)',
     # globals=globals(), number=10))
-    # create_table(cfg.folder,cfg.con)
-    df = get_equity_data("TCS", cfg.SQL_CON)
+    update_table(cfg.DOWNLOAD_FOLDER, cfg.SQL_CON)
+    # df = get_equity_data("TCS", cfg.SQL_CON)
 
 
 if __name__ == "__main__":
