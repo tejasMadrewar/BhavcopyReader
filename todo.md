@@ -9,3 +9,4 @@
 # Finished
 
 - modify updater to add data to postgres
+- get last updated date for pd_model

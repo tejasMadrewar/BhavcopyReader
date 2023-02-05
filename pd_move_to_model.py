@@ -95,6 +95,11 @@ def get_raw_data(engine: db.engine, start_dt: datetime.datetime.date, end_dt: da
     return df
 
 
+def get_last_updated_date(session):
+    query = session.query(db.func.max(model.Data.date1))
+    return query.all()[0][0].date()
+
+
 def main():
     Session = db.orm.sessionmaker(bind=dst_engine)
     session = Session()
@@ -103,12 +108,14 @@ def main():
     session.commit()
     first = datetime.datetime.now().date()
     # first = datetime.date(year=2012, month=1, day=1)
-    last = datetime.date(year=2009, month=1, day=1)
+    last = get_last_updated_date(session)
+    # last = datetime.date(year=2009, month=1, day=1)
     step = 366
     while last < first:
         first2 = first - datetime.timedelta(days=step)
-        print("from:", first, "to:", first2)
-        df_to_model(session, get_raw_data(src_engine, first, first2))
+        print("from:", first2, "to:", first)
+        df_to_model(session, get_raw_data(
+            src_engine, first, max(first2, last)))
         first = first2
 
 
