@@ -126,12 +126,13 @@ def get_equity_data(symbol_name: str, conn):
 
 
 def update_table(folder, engine, table_name="raw_data"):
-    last_updated = datetime.date(year=2011, month=1, day=1)
+    last_updated = datetime.date(year=2009, month=1, day=1)
     if engine.has_table(table_name):
         last_dt = pd.read_sql_query(
             f"SELECT MAX(date1) from {table_name}", engine)
-        if  not (last_dt.iloc[0, 0] == None):
+        if not (last_dt.iloc[0, 0] == None):
             last_updated = last_dt.iloc[0, 0].to_pydatetime().date()
+            # last_updated = datetime.date(year=2012, month=1, day=1)
     print(f"last updated {last_updated}")
     tday = datetime.datetime.today().date()
     days = [last_updated + timedelta(days=i)
