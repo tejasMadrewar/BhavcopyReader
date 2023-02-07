@@ -7,9 +7,7 @@ import config as cfg
 
 def PRZip_download_for_day(day, folder_location):
     PRZip_filename = day.strftime("PR%d%m%y.zip")
-    # print(PRZip_filename)
     file_path = os.path.join(folder_location, PRZip_filename)
-    # print(file_path)
     if os.path.isfile(file_path):
         print(f"\t{PRZip_filename} already exists.")
         return
@@ -43,8 +41,12 @@ def PRZip_download_last_n_days(n, folder_location):
     PRZip_download_for_days(days, folder_location)
 
 
-def main():
+def update():
     PRZip_download_last_n_days(30, cfg.DOWNLOAD_FOLDER)
+
+
+def main():
+    update()
 
 
 if __name__ == "__main__":

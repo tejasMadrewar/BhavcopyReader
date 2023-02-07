@@ -100,7 +100,7 @@ def get_last_updated_date(session):
     return query.all()[0][0].date()
 
 
-def main():
+def update():
     Session = db.orm.sessionmaker(bind=dst_engine)
     session = Session()
     # model.Base.metadata.drop_all(dst_engine)
@@ -112,11 +112,15 @@ def main():
     # last = datetime.date(year=2009, month=1, day=1)
     step = 366
     while last < first:
-        first2 = first - datetime.timedelta(days=step)
-        print("from:", first2, "to:", first)
+        next = first - datetime.timedelta(days=step)
+        print("from:", next, "to:", first)
         df_to_model(session, get_raw_data(
-            src_engine, first, max(first2, last)))
-        first = first2
+            src_engine, first, max(next, last)))
+        first = next
+
+
+def main():
+    update()
 
 
 if __name__ == "__main__":

@@ -67,14 +67,9 @@ def date_to_zipfile(date, folder):
 def day_to_df(day_date, folder):
     z = date_to_zipfile(day_date, folder)
     if z == None or day_date in BLACK_LIST:
-        # print(day_date, ": Not found")
-        # print("*", day_date)
         return pd.DataFrame()
     df = zipfile_to_pd_df(day_date, z)
     df = clean_df(day_date, df)
-    # print(day_date, ": Found")
-    # print(".", day_date)
-    # print(".", end="")
     return df
 
 
@@ -114,7 +109,7 @@ def df_to_db(df: pd.DataFrame, engine, table_name="raw_data"):
         print("No new data")
     else:
         df.to_sql(table_name, engine, if_exists="append",
-                  index=False, chunksize=10000)
+                  index=False, chunksize=100000)
         print(f"Added {len(df.date1.unique())} new days [{table_name}]")
 
 
@@ -137,17 +132,19 @@ def update_table(folder, engine, table_name="raw_data"):
     tday = datetime.datetime.today().date()
     days = [last_updated + timedelta(days=i)
             for i in range((tday-last_updated).days+1)]
-    # days = [start - timedelta(days=i)
-    #        for i in range(0, int(366*year))]
     df = days_to_df(days, folder)
     df_to_db(df, engine)
+
+
+def update():
+    update_table(cfg.DOWNLOAD_FOLDER, cfg.SQL_CON)
 
 
 def main():
     # print(timeit.timeit('get_equity_data("TCS",cfg.SQL_CON)',
     # globals=globals(), number=10))
-    update_table(cfg.DOWNLOAD_FOLDER, cfg.SQL_CON)
     # df = get_equity_data("TCS", cfg.SQL_CON)
+    update()
 
 
 if __name__ == "__main__":
