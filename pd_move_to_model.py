@@ -3,11 +3,7 @@ import sqlalchemy as db
 import pandas as pd
 import datetime
 
-
-src_engine = db.create_engine(
-    'postgresql+psycopg2://postgres:123456789@localhost:5432/NSE_DATA')
-dst_engine = db.create_engine(
-    'postgresql+psycopg2://postgres:123456789@localhost:5432/test')
+import config as cfg
 
 
 def df_to_model(session, df):
@@ -28,12 +24,12 @@ def df_to_model(session, df):
         updated_data = pd.DataFrame(
             df[src_col].unique(), columns=[dst_col])
         query = session.query(m).statement
-        old_data = pd.read_sql_query(query, con=dst_engine)
+        old_data = pd.read_sql_query(query, con=session.get_bind())
         new_data = pd.merge(updated_data, old_data, on=dst_col,
                             how="left")
         # new rows
         new_data = new_data[new_data.isna().any(axis=1)]
-        print(f"Found {len(new_data)} new value(s) in {src_col}.")
+        print(f"    Found {len(new_data)} new value(s) in {src_col}.")
         new_data = new_data[[dst_col]]
         # if not new_data.empty:
         #    print(new_data)
@@ -53,7 +49,7 @@ def df_to_model(session, df):
     print(
         f"New data {len(df.date1.unique())} days [{len(df)} rows]")
     old_dates = pd.read_sql_query(session.query(
-        model.Data.date1).distinct().statement, con=dst_engine)
+        model.Data.date1).distinct().statement, con=session.get_bind())
     if not old_dates.empty:
         # remove data with old dates and then insert
         old_dates["status"] = "old_date"
@@ -97,25 +93,44 @@ def get_raw_data(engine: db.engine, start_dt: datetime.datetime.date, end_dt: da
 
 def get_last_updated_date(session):
     query = session.query(db.func.max(model.Data.date1))
+    if query.all()[0][0] == None:
+        return datetime.date(year=2009, month=1, day=1)
     return query.all()[0][0].date()
 
 
-def update():
-    Session = db.orm.sessionmaker(bind=dst_engine)
+def create():
+    Session = db.orm.sessionmaker(bind=cfg.SQL_CON)
     session = Session()
-    # model.Base.metadata.drop_all(dst_engine)
-    model.Base.metadata.create_all(dst_engine)
+    # model.Base.metadata.drop_all(cfg.SQL_CON)
+    model.Base.metadata.create_all(cfg.SQL_CON)
     session.commit()
     first = datetime.datetime.now().date()
-    # first = datetime.date(year=2012, month=1, day=1)
-    last = get_last_updated_date(session)
-    # last = datetime.date(year=2009, month=1, day=1)
+    last = datetime.date(year=2009, month=1, day=1)
     step = 366
+    print("last updated :", last)
     while last < first:
         next = first - datetime.timedelta(days=step)
         print("from:", next, "to:", first)
         df_to_model(session, get_raw_data(
-            src_engine, first, max(next, last)))
+            cfg.SQL_CON, first, max(next, last)))
+        first = next
+
+
+def update():
+    Session = db.orm.sessionmaker(bind=cfg.SQL_CON)
+    session = Session()
+    model.Base.metadata.create_all(cfg.SQL_CON)
+    session.commit()
+    first = datetime.datetime.now().date()
+    # first = datetime.date(year=2012, month=1, day=1)
+    last = get_last_updated_date(session)
+    step = 366
+    print("last updated :", last)
+    while last < first:
+        next = first - datetime.timedelta(days=step)
+        print("from:", next, "to:", first)
+        df_to_model(session, get_raw_data(
+            cfg.SQL_CON, first, max(next, last)))
         first = next
 
 
