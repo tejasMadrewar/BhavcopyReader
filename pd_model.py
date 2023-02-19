@@ -155,6 +155,17 @@ class Data(Base):
         )>"
 
 
+class NameChange(Base):
+    __tablename__ = "name_change"
+    id = db.Column(db.Integer, primary_key=True)
+    date1 = db.Column(db.DateTime, nullable=False)
+    old_symbol_id = db.Column(db.SmallInteger, db.ForeignKey(
+        "symbol.id"), nullable=False)
+    new_symbol_id = db.Column(db.SmallInteger, db.ForeignKey(
+        "symbol.id"), nullable=False)
+    db.UniqueConstraint(date1, old_symbol_id, new_symbol_id)
+
+
 data_idx = db.Index("data_idx", Data.id, Data.date1,
                     Data.mkt_id, Data.series_id, Data.symbol_id)
 series_idx = db.Index("series_idx", Series.id, Series.series_name)

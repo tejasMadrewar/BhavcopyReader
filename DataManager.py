@@ -54,8 +54,8 @@ class DataManager:
 def main():
     session = db.orm.Session(cfg.SQL_CON)
     dMgr = DataManager(session)
-    # dMgr.plot_equity_data("HINDUNILVR")
-    dMgr.plot_equity("INFY")
+    # dMgr.plot_equity("HINDUNILVR")
+    dMgr.plot_equity("INFOSYSTCH")
 
 
 if __name__ == "__main__":
