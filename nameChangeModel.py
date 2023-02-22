@@ -10,6 +10,7 @@ class NameChangeManager():
         Session = db.orm.sessionmaker(bind=engine)
         self.session = Session()
         self.tbl = model.NameChange
+        self.symbolTbl = model.Symbol
 
     def download_data(self):
         url = "https://www1.nseindia.com/content/equities/symbolchange.csv"
@@ -66,6 +67,8 @@ class NameChangeManager():
         return query
 
     def get_all_symbol_ids(self, symbol_id):
+        if symbol_id == None:
+            return []
         data = set()
         data.add(symbol_id)
         result = self.gen_query_next(symbol_id).all()
@@ -82,15 +85,32 @@ class NameChangeManager():
         print(data)
         return data
 
+    def get_id_of_symbol(self, symbol_name):
+        query = self.session.query(
+            self.symbolTbl.id.label("symbols")).filter(
+                (self.symbolTbl.symbol_name == symbol_name)
+        )
+        result = query.all()
+        if result == []:
+            return None
+        else:
+            return result[0][0]
+
+    def get_ids_of_symbol(self, symbol_name):
+        self.get_all_symbol_ids(self.get_id_of_symbol(symbol_name))
+
+
+def test():
+    nameChange = NameChangeManager(cfg.SQL_CON)
+    nameChange.get_ids_of_symbol("INFY")
+    nameChange.get_ids_of_symbol("YAARII")
+    nameChange.get_ids_of_symbol("IBULISL")
+
 
 def update():
-    # nameChange.update()
     nameChange = NameChangeManager(cfg.SQL_CON)
-    nameChange.get_all_symbol_ids(2175)
-    nameChange.get_all_symbol_ids(2585)
-    nameChange.get_all_symbol_ids(2685)  # YAARII
-    nameChange.get_all_symbol_ids(2859)  # IBULISL
+    nameChange.update()
 
 
 if __name__ == "__main__":
-    update()
+    test()

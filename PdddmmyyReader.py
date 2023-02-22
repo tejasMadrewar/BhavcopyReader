@@ -13,8 +13,11 @@ from tqdm import tqdm
 import config as cfg
 
 # zip files with errors
-# 2018-01-02 same data as 2019-01-02
-BLACK_LIST = [datetime.date(2018, 1, 2)]
+
+BLACK_LIST = [
+    datetime.date(2018, 1, 2),  # 2018-01-02 same data as 2019-01-02
+    datetime.date(2023, 2, 20)  # same as 22-2-2023
+]
 
 
 def clean_df(date, df):
@@ -49,6 +52,7 @@ def zipfile_to_pd_df(date, zipfile_obj):
     the prddmmyy.csv file.
     """
     Pd_file = date.strftime("Pd%d%m%y.csv")
+    # print(date, Pd_file)
     Pd_file = list(filter(lambda x: x.endswith(
         Pd_file), zipfile_obj.namelist()))[0]
     df = pd.read_csv(zipfile_obj.open(Pd_file), encoding="ISO-8859-1")
