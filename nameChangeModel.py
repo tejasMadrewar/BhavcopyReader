@@ -82,7 +82,6 @@ class NameChangeManager():
             data.add(next)
             result = self.gen_query_prev(next).all()
         data = list(data)
-        print(data)
         return data
 
     def get_id_of_symbol(self, symbol_name):
@@ -97,7 +96,7 @@ class NameChangeManager():
             return result[0][0]
 
     def get_ids_of_symbol(self, symbol_name):
-        self.get_all_symbol_ids(self.get_id_of_symbol(symbol_name))
+        return self.get_all_symbol_ids(self.get_id_of_symbol(symbol_name))
 
 
 def test():

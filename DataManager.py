@@ -1,14 +1,16 @@
-from pd_model import Symbol, Data, Mkt, Series, Security1
 import pandas as pd
 import sqlalchemy as db
-import config as cfg
-import matplotlib.pyplot as plt
 import mplfinance as mpf
+
+from pd_model import Symbol, Data, Mkt, Series, Security1
+import config as cfg
+import nameChangeModel as nameChange
 
 
 class DataManager:
     def __init__(self, session: db.orm.Session):
         self.session = session
+        self.nameChange = nameChange.NameChangeManager(session.get_bind())
 
     def setup_queries(self):
         query_get_symbol_info = ""
@@ -19,7 +21,11 @@ class DataManager:
               )
         return df
 
-    def get_equity_data(self, symbol):
+    def generate_symbol_id_filter(self, symbol_name: str):
+        ids = self.nameChange.get_ids_of_symbol(symbol_name)
+        return db.or_(Data.symbol_id == i for i in ids)
+
+    def get_equity_data(self, symbol: str):
         query = self.session.query(
             Data.date1.label("Date"),
             # Series.series_name.label("series"),
@@ -35,7 +41,7 @@ class DataManager:
             (Series.series_name == "EQ") |
             (Series.series_name == "BE")
         ) .filter(
-            Symbol.symbol_name == symbol
+            self.generate_symbol_id_filter(symbol)
         ).order_by(
             # db.desc(Data.date1)
             Data.date1
@@ -44,10 +50,10 @@ class DataManager:
         df = self.query_to_df(query)
         return df
 
-    def plot_equity(self, symbol):
+    def plot_equity(self, symbol: str):
         df = self.get_equity_data(symbol)
         print(df)
-        print(df.dtypes)
+        # print(df.dtypes)
         mpf.plot(df, type="candle", mav=(50, 200))
 
 
@@ -55,7 +61,8 @@ def main():
     session = db.orm.Session(cfg.SQL_CON)
     dMgr = DataManager(session)
     # dMgr.plot_equity("HINDUNILVR")
-    dMgr.plot_equity("INFOSYSTCH")
+    # dMgr.plot_equity("YAARII")
+    dMgr.plot_equity("INFY")
 
 
 if __name__ == "__main__":

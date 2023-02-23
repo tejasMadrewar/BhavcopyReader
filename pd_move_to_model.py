@@ -98,6 +98,10 @@ def get_last_updated_date(session):
     return query.all()[0][0].date()
 
 
+def get_equity_data(session, symbol_name):
+    pass
+
+
 def create():
     Session = db.orm.sessionmaker(bind=cfg.SQL_CON)
     session = Session()
