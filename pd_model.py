@@ -166,6 +166,25 @@ class NameChange(Base):
     db.UniqueConstraint(date1, old_symbol_id, new_symbol_id)
 
 
+class CorpAction(Base):
+    __tablename__ = "corp_actions"
+    id = db.Column(db.Integer, primary_key=True)
+    date1 = db.Column(db.DateTime, nullable=False)
+    series_id = db.Column(db.SmallInteger, db.ForeignKey(
+        "series.id"), nullable=False)
+    symbol_id = db.Column(db.SmallInteger, db.ForeignKey(
+        "symbol.id"), nullable=False)
+    record_dt = db.Column(db.DateTime)
+    bc_strt_dt = db.Column(db.DateTime)
+    bc_end_dt = db.Column(db.DateTime)
+    ex_dt = db.Column(db.DateTime)
+    nd_strt_dt = db.Column(db.DateTime)
+    nd_end_dt = db.Column(db.DateTime)
+    purpose = db.Column(db.Text, nullable=False)
+    # db.UniqueConstraint(date1, series_id, symbol_id, record_dt,
+    # bc_strt_dt, bc_end_dt, ex_dt, nd_strt_dt, nd_end_dt, purpose)
+
+
 data_idx = db.Index("data_idx", Data.id, Data.date1,
                     Data.mkt_id, Data.series_id, Data.symbol_id)
 series_idx = db.Index("series_idx", Series.id, Series.series_name)
