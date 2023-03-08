@@ -42,9 +42,15 @@ class NameChangeManager():
         return df
 
     def save_to_database(self, df, session):
+        # remove old dates
+        model.Base.metadata.create_all(session.bind)
+        # delete all previous data
+        session.query(model.NameChange).delete()
+        session.commit()
         session.bulk_insert_mappings(
             model.NameChange, df.to_dict(orient="records"))
         session.commit()
+        print("Updated name_change table")
 
     def update(self):
         df = self.download_data()
@@ -112,4 +118,4 @@ def update():
 
 
 if __name__ == "__main__":
-    test()
+    update()
