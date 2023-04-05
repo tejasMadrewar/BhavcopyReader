@@ -25,7 +25,7 @@ class DataManager:
         ids = self.nameChange.get_ids_of_symbol(symbol_name)
         return db.or_(Data.symbol_id == i for i in ids)
 
-    def get_equity_data(self, symbol: str):
+    def get_equity_data(self, symbol: str, adjusted=True):
         query = self.session.query(
             Data.date1.label("Date"),
             # Series.series_name.label("series"),

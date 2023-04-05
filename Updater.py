@@ -8,6 +8,7 @@ import corpAction
 def main():
     # download PR files
     PRZipDownloader.update()
+    PRZipDownloader.update()
     # update pd file data
     PdddmmyyReader.update()
     pd_move_to_model.update()

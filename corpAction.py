@@ -7,8 +7,9 @@ import os
 import datetime
 
 import pd_model as model
-
 import config as cfg
+from nameChangeModel import NameChangeManager
+from pd_model import Data, CorpAction
 
 from tqdm import tqdm
 
@@ -183,8 +184,63 @@ def update():
     df_to_model(df, session)
 
 
+def get_corp_actions(symbol_name: str, session):
+    nameChange = NameChangeManager(session.get_bind())
+    ids = nameChange.get_ids_of_symbol(symbol_name)
+    symbol_fliter = db.or_(CorpAction.symbol_id == i for i in ids)
+    query = session.query(
+        CorpAction.id,
+        CorpAction.date1,
+        CorpAction.series_id,
+        CorpAction.symbol_id,
+        # CorpAction.record_dt,
+        # CorpAction.bc_strt_dt,
+        # CorpAction.bc_end_dt,
+        CorpAction.ex_dt,
+        # CorpAction.nd_strt_dt,
+        # CorpAction.nd_end_dt,
+        CorpAction.purpose
+    ).filter(
+        symbol_fliter
+    ).order_by(
+        CorpAction.ex_dt,
+        CorpAction.purpose,
+        CorpAction.date1,
+    ).distinct(
+        CorpAction.ex_dt,
+        CorpAction.purpose
+    )
+
+    # print(query.statement)
+    df = pd.read_sql_query(query.statement, session.get_bind())
+    # print(df)
+    # df.to_excel("corpAction.xlsx")
+    return df
+
+
+def get_only_split_bonus_actions(df: pd.DataFrame):
+    df["purpose"] = df.purpose.str.strip()
+    filter = df.purpose.str.fullmatch("^BONUS \d+:\d+$")
+    # filter1 = df.purpose.str.fullmatch(".*BONUS$")
+
+    print(df[filter
+             # | filter1
+             ])
+
+
+def get_adjustmentfactor(symbol_name: str, session):
+    # get corp action of symbol
+    df = get_corp_actions(symbol_name, session)
+    df = get_only_split_bonus_actions(df)
+    # generate the symbol filter
+    # generate the adjustment factor
+
+
 def main():
-    update()
+    Session = db.orm.sessionmaker(bind=cfg.SQL_CON)
+    session = Session()
+    # update()
+    get_adjustmentfactor("INFY", session)
 
 
 if __name__ == "__main__":

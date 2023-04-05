@@ -210,49 +210,15 @@ def drop_indexes(engine):
     symbol_idx.drop(engine)
 
 
+def get_last_updated_dates(session):
+    query = session.query(db.func.max(Data.date1))
+    d = query.all()[0][0]
+    if d != None:
+        print("Data last updated on : {d}")
+
+
 def main():
-    engine = db.create_engine("sqlite:///data.db")
-    # engine = db.create_engine(
-    # 'postgresql+psycopg2://postgres:123456789@localhost:5432/temp')
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    Base.metadata.create_all(engine)
-
-    # sym = Symbol.get_or_create(session, sym_name="TCS")
-    # print(sym)
-    # sym = Symbol.get_or_create(session, sym_name="INFY")
-    # print(sym)
-
-    # mkt = Mkt.get_or_create(session, mkt="Y")
-    # print(mkt)
-    # mkt = Mkt.get_or_create(session, mkt="N")
-    # print(mkt)
-
-    # s = Series.get_or_create(session, series="EQ")
-    # print(s)
-    # s = Series.get_or_create(session, series="BL")
-    # print(s)
-
-    # dt = datetime.datetime(year=2022, month=11, day=1)
-    # print(dt)
-    # d = Data.get_or_create(session, dt1=dt, mk_id=mkt.id, ser_id=s.id,
-    #                       sym_id=sym.id, op=10, hi=20, lo=5, cl=15)
-
-    # print(d)
-    # d = Data.get_or_create(session, dt1=dt, mk_id=mkt.id, ser_id=s.id,
-    #                       sym_id=sym.id, op=10, hi=20, lo=5, cl=15)
-    # print(d)
-    # dt = datetime.datetime(year=2022, month=11, day=2)
-
-    # d = Data.get_or_create(session, dt1=dt, mk_id=mkt.id, ser_id=s.id,
-    #                       sym_id=sym.id, op=10, hi=20, lo=5, cl=15)
-    # print(d)
-
-    # print(session.query(Data.id, Data.date1, Mkt.mkt_name, Series.series_name, Symbol.symbol_name, Data.open_price,
-    #                    Data.high_price, Data.low_price, Data.close_price).join(Mkt).join(Symbol).join(Series).all())
-
-    # print(session.query(Data.id, Data.date1, Mkt.mkt_name, Series.series_name, Symbol.symbol_name, Data.open_price,
-    #                    Data.high_price, Data.low_price, Data.close_price).join(Mkt).join(Symbol).join(Series).statement)
+    pass
 
 
 if __name__ == "__main__":
