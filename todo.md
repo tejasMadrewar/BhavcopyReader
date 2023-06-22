@@ -4,10 +4,11 @@
 
 # task
 
-- model for the corp actions splits/bonus
+- get corp action adjusted data
 
 # Finished
 
+- model for the corp actions splits/bonus
 - modify updater to add data to postgres
 - get last updated date for pd_model
 - get data for specified symbol

@@ -121,6 +121,7 @@ def create():
 
 
 def update():
+    print("movint to pd_model")
     Session = db.orm.sessionmaker(bind=cfg.SQL_CON)
     session = Session()
     model.Base.metadata.create_all(cfg.SQL_CON)

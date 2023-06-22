@@ -15,7 +15,7 @@ def main():
     # update corp actions
     corpAction.update()
     # update name change
-    nameChangeModel.update()
+    #nameChangeModel.update()
 
 
 if __name__ == "__main__":

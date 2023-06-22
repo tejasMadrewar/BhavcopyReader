@@ -171,6 +171,7 @@ def get_last_updated_date(session):
 
 
 def update():
+    print("Updating corp Actions")
     Session = db.orm.sessionmaker(bind=cfg.SQL_CON)
     session = Session()
     # create corp action table

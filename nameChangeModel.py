@@ -113,6 +113,7 @@ def test():
 
 
 def update():
+    print("Updating nameChangeModel")
     nameChange = NameChangeManager(cfg.SQL_CON)
     nameChange.update()
 
