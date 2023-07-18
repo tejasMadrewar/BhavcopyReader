@@ -1,4 +1,5 @@
 import PRZipDownloader
+import IndexDownloader
 import PdddmmyyReader
 import pd_move_to_model
 import nameChangeModel
@@ -15,7 +16,9 @@ def main():
     # update corp actions
     corpAction.update()
     # update name change
-    #nameChangeModel.update()
+    # nameChangeModel.update()
+    # download Index data
+    IndexDownloader.update()
 
 
 if __name__ == "__main__":
