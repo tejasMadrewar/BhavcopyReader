@@ -41,20 +41,20 @@ def get_data(url):
     return response.text
 
 
-def downloadIndex(indexName, downloadPath):
+def downloadIndex(indexName, downloadFolder):
     print(f"Downloading index data of {indexName}")
     if indexName in indexData:
         url = indexData[indexName]
         text = get_data(url)
-        with open(os.path.join(downloadPath, url.split("/")[-1]), "w") as f:
+        with open(os.path.join(downloadFolder, url.split("/")[-1]), "w") as f:
             f.write(text)
     else:
         print(f"URL for {indexName} does not exists.")
 
 
-def downloadAll(downloadPath):
+def downloadAll(downloadFolder):
     folder = os.path.join(
-        downloadPath, datetime.date.today().strftime("%Y-%m-%d_index_data")
+        downloadFolder, datetime.date.today().strftime("%Y-%m-%d_index_data")
     )
     if not os.path.exists(folder):
         os.makedirs(folder)
