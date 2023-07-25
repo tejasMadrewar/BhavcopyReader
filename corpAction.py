@@ -16,19 +16,30 @@ from tqdm import tqdm
 # zip files with errors
 BLACK_LIST = [
     datetime.date(2018, 1, 2),  # 2018-01-02 same data as 2019-01-02
-    datetime.date(2023, 2, 20)  # same as 22-2-2023
+    datetime.date(2023, 2, 20),  # same as 22-2-2023
 ]
 
-CSV_COLUMNS = ["SERIES", "SYMBOL", "SECURITY", "RECORD_DT", "BC_STRT_DT",
-               "BC_END_DT", "EX_DT", "ND_STRT_DT", "ND_END_DT", "PURPOSE"]
+CSV_COLUMNS = [
+    "SERIES",
+    "SYMBOL",
+    "SECURITY",
+    "RECORD_DT",
+    "BC_STRT_DT",
+    "BC_END_DT",
+    "EX_DT",
+    "ND_STRT_DT",
+    "ND_END_DT",
+    "PURPOSE",
+]
 
 
 def df_to_model(df: pd.DataFrame, session):
     if df.empty:
         return
-    tables = [{"model": model.Symbol, "src_col": "symbol", "dst_col": "symbol_name"},
-              {"model": model.Series, "src_col": "series", "dst_col": "series_name"},
-              ]
+    tables = [
+        {"model": model.Symbol, "src_col": "symbol", "dst_col": "symbol_name"},
+        {"model": model.Series, "src_col": "series", "dst_col": "series_name"},
+    ]
     df["series"] = df["series"].fillna("_")
     df["symbol"] = df["symbol"].fillna("_")
     # remove already present dates
@@ -40,12 +51,10 @@ def df_to_model(df: pd.DataFrame, session):
         src_col = t["src_col"]
         dst_col = t["dst_col"]
         m = t["model"]
-        updated_data = pd.DataFrame(
-            df[src_col].unique(), columns=[dst_col])
+        updated_data = pd.DataFrame(df[src_col].unique(), columns=[dst_col])
         query = session.query(m).statement
         old_data = pd.read_sql_query(query, con=session.get_bind())
-        new_data = pd.merge(updated_data, old_data, on=dst_col,
-                            how="left")
+        new_data = pd.merge(updated_data, old_data, on=dst_col, how="left")
         # new rows
         new_data = new_data[new_data.isna().any(axis=1)]
         print(f"    Found {len(new_data)} new value(s) in {src_col}.")
@@ -62,39 +71,54 @@ def df_to_model(df: pd.DataFrame, session):
         t1 = t1.rename(columns={"id": f"{src_col}_id"})
         df = df.rename(columns={src_col: dst_col})
         df = pd.merge(df, t1, on=dst_col, how="left")
-    old_dates = pd.read_sql_query(session.query(
-        model.CorpAction.date1).distinct().statement, con=session.get_bind())
+    old_dates = pd.read_sql_query(
+        session.query(model.CorpAction.date1).distinct().statement,
+        con=session.get_bind(),
+    )
     if not old_dates.empty:
         # remove data with old dates and then insert
         old_dates["status"] = "old_date"
         df = pd.merge(df, old_dates, on="date1", how="left")
         df = df[df.status.isna()]
-    df = df[["date1", "symbol_id", "series_id", "record_dt",
-             "bc_strt_dt", "ex_dt", "nd_strt_dt",
-             "nd_end_dt", "purpose"
-             ]]
+    df = df[
+        [
+            "date1",
+            "symbol_id",
+            "series_id",
+            "record_dt",
+            "bc_strt_dt",
+            "ex_dt",
+            "nd_strt_dt",
+            "nd_end_dt",
+            "purpose",
+        ]
+    ]
     print(f"Found {len(df.date1.unique())} new days")
     df = df.replace({np.nan: None})
-    session.bulk_insert_mappings(
-        model.CorpAction, df.to_dict(orient="records")
-    )
+    session.bulk_insert_mappings(model.CorpAction, df.to_dict(orient="records"))
     session.commit()
     # print(df)
 
 
 def clean_df(df: pd.DataFrame, day):
-    date_cols = ["record_dt", "bc_strt_dt",
-                 "bc_end_dt", "ex_dt", "nd_strt_dt", "nd_end_dt", "date1"]
+    date_cols = [
+        "record_dt",
+        "bc_strt_dt",
+        "bc_end_dt",
+        "ex_dt",
+        "nd_strt_dt",
+        "nd_end_dt",
+        "date1",
+    ]
     # remove Unnamed columns
-    df = df.loc[:, ~df.columns.str.match('Unnamed')]
+    df = df.loc[:, ~df.columns.str.match("Unnamed")]
     # make DATE1 column
     df.insert(0, "date1", value=day)
     # make all column names lower case
     df.columns = map(str.lower, df.columns)
     df = df.replace(to_replace=" ", value="").drop("security", axis=1)
     # changes column types
-    df = df.astype(
-        {"purpose": "string", "symbol": "string", "series": "string"})
+    df = df.astype({"purpose": "string", "symbol": "string", "series": "string"})
     for col in date_cols:
         df[col] = pd.to_datetime(df[col], dayfirst=True)
     return df
@@ -105,8 +129,7 @@ def zipfile_to_bc_df(day, zip_file):
     create dataframe from Bcddmmyy.csv file
     """
     bc_file = day.strftime("Bc%d%m%y.csv")
-    result = list(filter(lambda x: x.endswith(bc_file),
-                         zip_file.namelist()))
+    result = list(filter(lambda x: x.endswith(bc_file), zip_file.namelist()))
     # check BC file is present in the zip
     if len(result) < 1:
         return pd.DataFrame()
@@ -115,10 +138,10 @@ def zipfile_to_bc_df(day, zip_file):
     # check for empty bhavcopy
     if zip_file.getinfo(bc_file).file_size == 0:
         return pd.DataFrame()
-    bc_file = list(filter(lambda x: x.endswith(bc_file),
-                   zip_file.namelist()))[0]
-    df = pd.read_csv(zip_file.open(bc_file),
-                     sep=',', encoding="ISO-8859-1", on_bad_lines="warn")
+    bc_file = list(filter(lambda x: x.endswith(bc_file), zip_file.namelist()))[0]
+    df = pd.read_csv(
+        zip_file.open(bc_file), sep=",", encoding="ISO-8859-1", on_bad_lines="warn"
+    )
     return clean_df(df, day)
 
 
@@ -141,13 +164,12 @@ def day_to_df(day, folder: str):
 
 
 def days_to_df(days, folder: str):
-    df = pd.concat([day_to_df(i, folder)
-                   for i in tqdm(days)], ignore_index=True)
+    df = pd.concat([day_to_df(i, folder) for i in tqdm(days)], ignore_index=True)
     return df
 
 
 def recreate_all_data(con, folder: str):
-    start_date = datetime.date(2010, 1, 1)   # start date
+    start_date = datetime.date(2010, 1, 1)  # start date
     Session = db.orm.sessionmaker(bind=con)
     session = Session()
     # create corp action table
@@ -157,8 +179,10 @@ def recreate_all_data(con, folder: str):
     session.commit()
     # generate dates
     today = datetime.datetime.today().date()
-    days = [today - datetime.timedelta(days=i)
-            for i in range(int((today - start_date).days)+2)]
+    days = [
+        today - datetime.timedelta(days=i)
+        for i in range(int((today - start_date).days) + 2)
+    ]
     df = days_to_df(days, folder)
     df_to_model(df, session)
 
@@ -170,17 +194,23 @@ def get_last_updated_date(session):
     return query.all()[0][0].date()
 
 
-def update():
+def update(n=None):
     print("Updating corp Actions")
     Session = db.orm.sessionmaker(bind=cfg.SQL_CON)
     session = Session()
     # create corp action table
     model.Base.metadata.create_all(cfg.SQL_CON)
     start_date = get_last_updated_date(session)
-    # generate dates
     today = datetime.datetime.today().date()
-    days = [today - datetime.timedelta(days=i)
-            for i in range(int((today - start_date).days)+2)]
+    if n == None:
+        start_date = get_last_updated_date(session)
+    else:
+        start_date = today - datetime.timedelta(days=n)
+    # generate dates
+    days = [
+        today - datetime.timedelta(days=i)
+        for i in range(int((today - start_date).days) + 2)
+    ]
     df = days_to_df(days, cfg.DOWNLOAD_FOLDER)
     df_to_model(df, session)
 
@@ -189,27 +219,27 @@ def get_corp_actions(symbol_name: str, session):
     nameChange = NameChangeManager(session.get_bind())
     ids = nameChange.get_ids_of_symbol(symbol_name)
     symbol_fliter = db.or_(CorpAction.symbol_id == i for i in ids)
-    query = session.query(
-        CorpAction.id,
-        CorpAction.date1,
-        CorpAction.series_id,
-        CorpAction.symbol_id,
-        # CorpAction.record_dt,
-        # CorpAction.bc_strt_dt,
-        # CorpAction.bc_end_dt,
-        CorpAction.ex_dt,
-        # CorpAction.nd_strt_dt,
-        # CorpAction.nd_end_dt,
-        CorpAction.purpose
-    ).filter(
-        symbol_fliter
-    ).order_by(
-        CorpAction.ex_dt,
-        CorpAction.purpose,
-        CorpAction.date1,
-    ).distinct(
-        CorpAction.ex_dt,
-        CorpAction.purpose
+    query = (
+        session.query(
+            CorpAction.id,
+            CorpAction.date1,
+            CorpAction.series_id,
+            CorpAction.symbol_id,
+            # CorpAction.record_dt,
+            # CorpAction.bc_strt_dt,
+            # CorpAction.bc_end_dt,
+            CorpAction.ex_dt,
+            # CorpAction.nd_strt_dt,
+            # CorpAction.nd_end_dt,
+            CorpAction.purpose,
+        )
+        .filter(symbol_fliter)
+        .order_by(
+            CorpAction.ex_dt,
+            CorpAction.purpose,
+            CorpAction.date1,
+        )
+        .distinct(CorpAction.ex_dt, CorpAction.purpose)
     )
 
     # print(query.statement)
@@ -224,9 +254,12 @@ def get_only_split_bonus_actions(df: pd.DataFrame):
     filter = df.purpose.str.fullmatch("^BONUS \d+:\d+$")
     # filter1 = df.purpose.str.fullmatch(".*BONUS$")
 
-    print(df[filter
-             # | filter1
-             ])
+    print(
+        df[
+            filter
+            # | filter1
+        ]
+    )
 
 
 def get_adjustmentfactor(symbol_name: str, session):
