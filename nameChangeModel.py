@@ -5,7 +5,7 @@ import config as cfg
 import pd_model as model
 
 
-class NameChangeManager():
+class NameChangeManager:
     def __init__(self, engine):
         Session = db.orm.sessionmaker(bind=engine)
         self.session = Session()
@@ -14,28 +14,33 @@ class NameChangeManager():
 
     def download_data(self):
         url = "https://www1.nseindia.com/content/equities/symbolchange.csv"
+        url = "https://archives.nseindia.com/content/equities/symbolchange.csv"
         df = pd.read_csv(url, encoding="ISO-8859-1", header=None)
         df.columns = ["security", "old_symbol", "new_symbol", "date1"]
         df = df.astype(
-            {"date1": "datetime64[ns]",
-             "security": "string",
-             "old_symbol": "string",
-             "new_symbol": "string"})
+            {
+                "date1": "datetime64[ns]",
+                "security": "string",
+                "old_symbol": "string",
+                "new_symbol": "string",
+            }
+        )
         df = df.sort_values("date1")
         df = df[["date1", "security", "old_symbol", "new_symbol"]]
         df.to_csv("SymbolChanges.csv", index=False)
         return df
 
     def clean_data(self, df):
-        sym = pd.read_sql_table(
-            model.Symbol.__tablename__, cfg.SQL_CON)
+        sym = pd.read_sql_table(model.Symbol.__tablename__, cfg.SQL_CON)
         # left join 1
-        df = df.merge(sym, how="left", left_on="old_symbol",
-                      right_on="symbol_name").drop(columns=["symbol_name"])
+        df = df.merge(
+            sym, how="left", left_on="old_symbol", right_on="symbol_name"
+        ).drop(columns=["symbol_name"])
         df = df.rename(columns={"id": "old_symbol_id"})
         # left join 2
-        df = df.merge(sym, how="left", left_on="new_symbol",
-                      right_on="symbol_name").drop(columns=["symbol_name"])
+        df = df.merge(
+            sym, how="left", left_on="new_symbol", right_on="symbol_name"
+        ).drop(columns=["symbol_name"])
         df = df.rename(columns={"id": "new_symbol_id"})
         # remove symbols which are not present in symbol table
         df = df.dropna()
@@ -47,8 +52,7 @@ class NameChangeManager():
         # delete all previous data
         session.query(model.NameChange).delete()
         session.commit()
-        session.bulk_insert_mappings(
-            model.NameChange, df.to_dict(orient="records"))
+        session.bulk_insert_mappings(model.NameChange, df.to_dict(orient="records"))
         session.commit()
         print("Updated name_change table")
 
@@ -59,16 +63,14 @@ class NameChangeManager():
         self.save_to_database(df, self.session)
 
     def gen_query_next(self, symbol_id):
-        query = self.session.query(
-            self.tbl.old_symbol_id.label("symbols")).filter(
-                (self.tbl.new_symbol_id == symbol_id)
+        query = self.session.query(self.tbl.old_symbol_id.label("symbols")).filter(
+            (self.tbl.new_symbol_id == symbol_id)
         )
         return query
 
     def gen_query_prev(self, symbol_id):
-        query = self.session.query(
-            self.tbl.new_symbol_id.label("symbols")).filter(
-                (self.tbl.old_symbol_id == symbol_id)
+        query = self.session.query(self.tbl.new_symbol_id.label("symbols")).filter(
+            (self.tbl.old_symbol_id == symbol_id)
         )
         return query
 
@@ -91,9 +93,8 @@ class NameChangeManager():
         return data
 
     def get_id_of_symbol(self, symbol_name):
-        query = self.session.query(
-            self.symbolTbl.id.label("symbols")).filter(
-                (self.symbolTbl.symbol_name == symbol_name)
+        query = self.session.query(self.symbolTbl.id.label("symbols")).filter(
+            (self.symbolTbl.symbol_name == symbol_name)
         )
         result = query.all()
         if result == []:
