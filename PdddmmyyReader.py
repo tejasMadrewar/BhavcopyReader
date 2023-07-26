@@ -111,6 +111,7 @@ def df_to_db(df: pd.DataFrame, engine, table_name="raw_data"):
             f"SELECT DISTINCT(date1) from {table_name}", engine
         )
         prev_dts["status"] = True
+        prev_dts["date1"] = pd.to_datetime(prev_dts["date1"])
         df = pd.merge(df, prev_dts, on="date1", how="left")
         df = df[df.status.isna()].drop(["status"], axis=1)
     if df.empty:

@@ -8,7 +8,7 @@ import corpAction
 
 def main():
     # download PR files
-    n = 250
+    n = 60
     PRZipDownloader.update(n)
     PRZipDownloader.update(n)
     # update pd file data
@@ -17,7 +17,7 @@ def main():
     # update corp actions
     corpAction.update(n)
     # update name change
-    # nameChangeModel.update()
+    nameChangeModel.update()
     # download Index data
     IndexDownloader.update()
 
