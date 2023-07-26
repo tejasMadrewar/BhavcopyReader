@@ -27,7 +27,7 @@ class NameChangeManager:
         )
         df = df.sort_values("date1")
         df = df[["date1", "security", "old_symbol", "new_symbol"]]
-        df.to_csv("SymbolChanges.csv", index=False)
+        df.to_csv("symbolchange.csv", index=False)
         return df
 
     def clean_data(self, df):
@@ -59,7 +59,6 @@ class NameChangeManager:
     def update(self):
         df = self.download_data()
         df = self.clean_data(df)
-        df.to_csv("symbolIdChanges.csv")
         self.save_to_database(df, self.session)
 
     def gen_query_next(self, symbol_id):
