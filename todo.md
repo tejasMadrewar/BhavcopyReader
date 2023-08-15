@@ -5,6 +5,7 @@
 # task
 
 - get corp action adjusted data
+- add period filter in DataManager
 
 # Finished
 
@@ -15,3 +16,4 @@
 - get symbol name changes
 - model for symbol changes
 - get symbol name changes adjusted equity data
+- get corp action of symbol

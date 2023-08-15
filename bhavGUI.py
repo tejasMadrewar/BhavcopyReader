@@ -3,12 +3,14 @@ from PyQt5.QtWidgets import (
     QComboBox,
     QMainWindow,
     QApplication,
-    QVBoxLayout,
     QWidget,
     QCompleter,
     QLineEdit,
     QPushButton,
     QHBoxLayout,
+    QVBoxLayout,
+    QGridLayout,
+    QFormLayout,
 )
 
 from PyQt5.QtCore import Qt
@@ -110,14 +112,14 @@ class MainWindow(QMainWindow):
         # layout
 
         self.generalLayout = QHBoxLayout()
-        self.menuBar1 = QVBoxLayout()
+        self.menuBar1 = QFormLayout()
 
         self.generalLayout.addLayout(self.menuBar1)
         self.generalLayout.addWidget(self.canvas)
 
-        self.menuBar1.addWidget(self.plotBtn)
-        self.menuBar1.addWidget(self.tickerBox)
-        self.menuBar1.addWidget(self.periodCombo)
+        self.menuBar1.addRow("Ticker", self.tickerBox)
+        self.menuBar1.addRow("Period", self.periodCombo)
+        self.menuBar1.addRow(self.plotBtn)
 
         centralWidget = QWidget(self)
         centralWidget.setLayout(self.generalLayout)
