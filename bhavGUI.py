@@ -1,73 +1,146 @@
-import sys
-from time import sleep
-
-from PyQt6 import QtGui, QtCore, QtWidgets
-from PyQt6.QtCore import Qt, QObject, QThread, pyqtSignal
-from PyQt6.QtWidgets import (
+import typing
+from PyQt5.QtWidgets import (
+    QComboBox,
     QMainWindow,
     QApplication,
-    QPushButton,
-    QCheckBox,
-    QProgressBar,
-    QMessageBox,
     QVBoxLayout,
-    QHBoxLayout,
     QWidget,
+    QCompleter,
     QLineEdit,
+    QPushButton,
+    QHBoxLayout,
 )
 
-import DataManager
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QValidator
+from PyQt5 import QtGui
+
+import sqlalchemy as db
+from matplotlib.backends.backend_qt5agg import FigureCanvas
+import matplotlib.pyplot as plt
+import matplotlib
+
+import DataManager as dMgr
+import config
 
 
-# https://realpython.com/python-pyqt-qthread/
-class Worker(QObject):
-    finished = pyqtSignal()
-    progress = pyqtSignal(int)
+class TagsValidator(QtGui.QValidator):
+    def __init__(self, tags, *args, **kwargs):
+        QtGui.QValidator.__init__(self, *args, **kwargs)
+        self._tags = [tag.lower() for tag in tags]
 
-    def run(self):
-        "running task"
-        for i in range(5):
-            sleep(5)
-            self.progress.emit(i + 1)
-        self.finished.emit()
+    def validate(self, inputText, pos):
+        if inputText.lower() in self._tags:
+            return QtGui.QValidator.Acceptable
+        len_ = len(inputText)
+        for tag in self._tags:
+            if tag[:len_] == inputText.lower():
+                return QtGui.QValidator.Intermediate
+        return QtGui.QValidator.Invalid
 
 
-class Window(QMainWindow):
+class tickerLineEdit(QLineEdit):
+    def __init__(self, dataMgr=None):
+        super().__init__()
+        self.dataMgr = dataMgr
+        self.data = []
+        self.setPlaceholderText("Enter ticker name...")
+        self.completer = QCompleter(self.data, self)
+        self.completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+        self.setCompleter(self.completer)
+        self.set_autocompletion()
+
+    def set_autocompletion(self):
+        if self.dataMgr == None:
+            tickers = []
+        else:
+            l = self.dataMgr.get_all_tickers()
+            tickers = l["symbol"].to_list()
+        self.data = tickers
+        self.set_completion_list(tickers)
+        # self.setValidator(TagsValidator(tickers))
+
+    def text_changed(self):
+        print("text changed ", self.text())
+
+    def get_completion_list(self):
+        return self.data
+
+    def set_completion_list(self, data):
+        self.data = data
+        self.completer.model().setStringList(self.data)
+
+
+class periodComboBox(QComboBox):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Bhav Downloader")
-        self.generalLayout = QVBoxLayout()
+        self.addItems([str(i) + "y" for i in range(1, 20)])
+
+
+class customePushButton(QPushButton):
+    def __init__(self):
+        super().__init__()
+        self.setText("Add to list")
+
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        # datamgr
+        self.session = db.orm.Session(config.SQL_CON)
+        self.dataMgr = dMgr.DataManager(self.session)
+
+        self.setWindowTitle("Bhav Data viewer")
+
+        self.tickerBox = tickerLineEdit(self.dataMgr)
+
+        self.plotBtn = customePushButton()
+        self.plotBtn.setText("Plot")
+        self.plotBtn.clicked.connect(self.update_chart)
+        self.btn2 = customePushButton()
+        self.btn2.setText("test2")
+
+        # combobox
+        self.periodCombo = periodComboBox()
+
+        # canvas
+        self.canvas = FigureCanvas(plt.Figure(figsize=(15, 6)))
+
+        # layout
+
+        self.generalLayout = QHBoxLayout()
+        self.menuBar1 = QVBoxLayout()
+
+        self.generalLayout.addLayout(self.menuBar1)
+        self.generalLayout.addWidget(self.canvas)
+
+        self.menuBar1.addWidget(self.plotBtn)
+        self.menuBar1.addWidget(self.tickerBox)
+        self.menuBar1.addWidget(self.periodCombo)
+
         centralWidget = QWidget(self)
         centralWidget.setLayout(self.generalLayout)
         self.setCentralWidget(centralWidget)
-        self.createDisplay()
-        self.connectSignalAndSlots()
-        self.progress.setValue(0)
-        self.show()
+        self.insert_ax()
 
-    def createDisplay(self):
-        self.progress = QProgressBar()
-        self.btn = QPushButton("Download")
-        self.generalLayout.addWidget(self.progress)
-        self.generalLayout.addWidget(self.btn)
+    def insert_ax(self):
+        # font = {"weight": "normal", "size": 16}
+        # matplotlib.rc("font", **font)
+        self.ax = self.canvas.figure.subplots()
+        self.bar = None
 
-    def connectSignalAndSlots(self):
-        self.btn.clicked.connect(self.incProgressBarValue)
-
-    def setProgressBarValue(self, value):
-        self.progress.setValue(value)
-
-    def incProgressBarValue(self):
-        self.setProgressBarValue((self.progress.value() + 5) % self.progress.maximum())
-
-    def close_app(self):
-        pass
+    def update_chart(self):
+        ticker = self.tickerBox.text()
+        print(ticker)
+        self.ax.clear()
+        self.ax.set_title(ticker)
+        self.dataMgr.plot_equity(ticker, ax=self.ax)
+        self.canvas.draw()
 
 
-def run():
-    app = QApplication(sys.argv)
-    window = Window()
-    sys.exit(app.exec())
-
-
-run()
+if __name__ == "__main__":
+    app = QApplication([])
+    w = MainWindow()
+    w.show()
+    app.exec()

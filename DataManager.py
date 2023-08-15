@@ -60,11 +60,13 @@ class DataManager:
         df = pd.read_sql_query(query.statement, self.session.get_bind())
         return df
 
-    def plot_equity(self, symbol: str):
+    def plot_equity(self, symbol: str, ax=None):
         df = self.get_equity_data(symbol)
-        print(df)
         # print(df.dtypes)
-        mpf.plot(df, type="candle", mav=(50, 200))
+        if ax == None:
+            mpf.plot(df, type="candle", mav=(50, 200))
+        else:
+            mpf.plot(df, type="candle", mav=(50, 200), ax=ax)
 
 
 def main():
