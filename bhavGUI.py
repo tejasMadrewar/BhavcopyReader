@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (
     QMainWindow,
     QApplication,
     QWidget,
+    QTableView,
     QCompleter,
     QLineEdit,
     QPushButton,
@@ -13,7 +14,7 @@ from PyQt5.QtWidgets import (
     QFormLayout,
 )
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QAbstractTableModel, QModelIndex
 from PyQt5.QtGui import QValidator
 from PyQt5 import QtGui
 
@@ -21,24 +22,66 @@ import sqlalchemy as db
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 import matplotlib.pyplot as plt
 import matplotlib
+import pandas as pd
 
 import DataManager as dMgr
 import config
 
 
-class TagsValidator(QtGui.QValidator):
-    def __init__(self, tags, *args, **kwargs):
-        QtGui.QValidator.__init__(self, *args, **kwargs)
-        self._tags = [tag.lower() for tag in tags]
+class PandasModel(QAbstractTableModel):
+    """A model to interface a Qt view with pandas dataframe"""
 
-    def validate(self, inputText, pos):
-        if inputText.lower() in self._tags:
-            return QtGui.QValidator.Acceptable
-        len_ = len(inputText)
-        for tag in self._tags:
-            if tag[:len_] == inputText.lower():
-                return QtGui.QValidator.Intermediate
-        return QtGui.QValidator.Invalid
+    def __init__(self, dataframe: pd.DataFrame, parent=None):
+        QAbstractTableModel.__init__(self, parent)
+        self._dataframe = dataframe
+
+    def rowCount(self, parent=QModelIndex()) -> int:
+        """Override method from QAbstractTableModel
+
+        Return row count of the pandas DataFrame
+        """
+        if parent == QModelIndex():
+            return len(self._dataframe)
+
+        return 0
+
+    def columnCount(self, parent=QModelIndex()) -> int:
+        """Override method from QAbstractTableModel
+
+        Return column count of the pandas DataFrame
+        """
+        if parent == QModelIndex():
+            return len(self._dataframe.columns)
+        return 0
+
+    def data(self, index: QModelIndex, role=Qt.ItemDataRole):
+        """Override method from QAbstractTableModel
+
+        Return data cell from the pandas DataFrame
+        """
+        if not index.isValid():
+            return None
+
+        if role == Qt.DisplayRole:
+            return str(self._dataframe.iloc[index.row(), index.column()])
+
+        return None
+
+    def headerData(
+        self, section: int, orientation: Qt.Orientation, role: Qt.ItemDataRole
+    ):
+        """Override method from QAbstractTableModel
+
+        Return dataframe index as vertical header data and columns as horizontal header data.
+        """
+        if role == Qt.DisplayRole:
+            if orientation == Qt.Horizontal:
+                return str(self._dataframe.columns[section])
+
+            if orientation == Qt.Vertical:
+                return str(self._dataframe.index[section])
+
+        return None
 
 
 class tickerLineEdit(QLineEdit):
@@ -61,7 +104,6 @@ class tickerLineEdit(QLineEdit):
             tickers = l["symbol"].to_list()
         self.data = tickers
         self.set_completion_list(tickers)
-        # self.setValidator(TagsValidator(tickers))
 
     def text_changed(self):
         print("text changed ", self.text())
@@ -100,11 +142,14 @@ class MainWindow(QMainWindow):
         self.plotBtn = customePushButton()
         self.plotBtn.setText("Plot")
         self.plotBtn.clicked.connect(self.update_chart)
-        self.btn2 = customePushButton()
-        self.btn2.setText("test2")
+        self.showCorpActionBtn = customePushButton()
+        self.showCorpActionBtn.setText("show corpAction")
+        self.showCorpActionBtn.clicked.connect(self.show_corp_action)
 
         # combobox
         self.periodCombo = periodComboBox()
+        # corpaction table
+        self.corpActionTable = None
 
         # canvas
         self.canvas = FigureCanvas(plt.Figure(figsize=(15, 6)))
@@ -120,6 +165,7 @@ class MainWindow(QMainWindow):
         self.menuBar1.addRow("Ticker", self.tickerBox)
         self.menuBar1.addRow("Period", self.periodCombo)
         self.menuBar1.addRow(self.plotBtn)
+        self.menuBar1.addRow(self.showCorpActionBtn)
 
         centralWidget = QWidget(self)
         centralWidget.setLayout(self.generalLayout)
@@ -139,6 +185,24 @@ class MainWindow(QMainWindow):
         self.ax.set_title(ticker)
         self.dataMgr.plot_equity(ticker, ax=self.ax)
         self.canvas.draw()
+
+    def show_corp_action(self):
+        if self.corpActionTable == None:
+            self.corpActionTable = QTableView()
+            self.corpActionTable.setWindowTitle("Corp Actions")
+            self.corpActionTable.resize(700, 500)
+            self.corpActionTable.horizontalHeader().setStretchLastSection(True)
+            self.corpActionTable.setAlternatingRowColors(True)
+            self.corpActionTable.model = PandasModel(
+                self.dataMgr.get_corpAction_data(self.tickerBox.text())
+            )
+            self.corpActionTable.setModel(self.corpActionTable.model)
+        else:
+            self.corpActionTable.model = PandasModel(
+                self.dataMgr.get_corpAction_data(self.tickerBox.text())
+            )
+            self.corpActionTable.setModel(self.corpActionTable.model)
+        self.corpActionTable.show()
 
 
 if __name__ == "__main__":
