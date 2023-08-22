@@ -1,5 +1,6 @@
 import pandas as pd
 import sqlalchemy as db
+from sqlalchemy.sql import exists
 import mplfinance as mpf
 
 from pd_model import Symbol, Data, Mkt, Series, Security1, CorpAction
@@ -42,7 +43,7 @@ class DataManager:
                 # Mkt
             )
             .filter((Series.series_name == "EQ") | (Series.series_name == "BE"))
-            .filter(self.generate_symbol_id_filter(symbol, Data))
+            .filter(self.generate_symbol_id_filter(symbol.upper(), Data))
             .order_by(
                 # db.desc(Data.date1)
                 Data.date1
@@ -63,7 +64,7 @@ class DataManager:
             .join(
                 Symbol,
             )
-            .filter(self.generate_symbol_id_filter(symbol, CorpAction))
+            .filter(self.generate_symbol_id_filter(symbol.upper(), CorpAction))
             .order_by(CorpAction.date1, CorpAction.record_dt, CorpAction.ex_dt)
             .distinct()
         )
@@ -83,12 +84,19 @@ class DataManager:
         return df
 
     def plot_equity(self, symbol: str, ax=None):
-        df = self.get_equity_data(symbol)
-        # print(df.dtypes)
-        if ax == None:
-            mpf.plot(df, type="candle", mav=(50, 200))
-        else:
-            mpf.plot(df, type="candle", mav=(50, 200), ax=ax)
+        if self.is_ticker_valid(symbol):
+            df = self.get_equity_data(symbol)
+            # print(df.dtypes)
+            if ax == None:
+                mpf.plot(df, type="candle", mav=(50, 200))
+            else:
+                mpf.plot(df, type="candle", mav=(50, 200), ax=ax)
+
+    def is_ticker_valid(self, ticker: str):
+        a = self.session.query(
+            exists().where(Symbol.symbol_name == ticker.upper())
+        ).scalar()
+        return a
 
 
 def test_get_corp_action():
@@ -97,6 +105,14 @@ def test_get_corp_action():
     df = dMgr.get_corpAction_data("TCS")
     print(df)
     df.to_csv("corp_data_test.csv")
+
+
+def test_is_symbol_valid():
+    session = db.orm.Session(cfg.SQL_CON)
+    dMgr = DataManager(session)
+    tickers = ["asdf", "Tcs", "TCS", "fffff", "HDFC"]
+    for t in tickers:
+        print(t, dMgr.is_ticker_valid(t))
 
 
 def main():
@@ -110,4 +126,5 @@ def main():
 
 if __name__ == "__main__":
     # main()
-    test_get_corp_action()
+    # test_get_corp_action()
+    test_is_symbol_valid()

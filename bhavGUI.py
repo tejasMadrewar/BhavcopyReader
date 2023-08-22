@@ -128,6 +128,26 @@ class customePushButton(QPushButton):
         self.setText("Add to list")
 
 
+class corpActionWidget(QTableView):
+    def __init__(self, dataMgr):
+        super().__init__()
+        self.dataMgr = dataMgr
+        self.setWindowTitle("Corp Actions")
+        self.resize(700, 500)
+        self.horizontalHeader().setStretchLastSection(True)
+        self.setAlternatingRowColors(True)
+        self.model = PandasModel(pd.DataFrame())
+        self.setModel(self.model)
+
+    def showTable(self):
+        self.show()
+
+    def setTicker(self, ticker: str):
+        if self.dataMgr.is_ticker_valid(ticker):
+            self.model = PandasModel(self.dataMgr.get_corpAction_data(ticker))
+            self.setModel(self.model)
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -138,6 +158,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Bhav Data viewer")
 
         self.tickerBox = tickerLineEdit(self.dataMgr)
+        self.corpActionTable = corpActionWidget(self.dataMgr)
 
         self.plotBtn = customePushButton()
         self.plotBtn.setText("Plot")
@@ -148,8 +169,6 @@ class MainWindow(QMainWindow):
 
         # combobox
         self.periodCombo = periodComboBox()
-        # corpaction table
-        self.corpActionTable = None
 
         # canvas
         self.canvas = FigureCanvas(plt.Figure(figsize=(15, 6)))
@@ -187,21 +206,7 @@ class MainWindow(QMainWindow):
         self.canvas.draw()
 
     def show_corp_action(self):
-        if self.corpActionTable == None:
-            self.corpActionTable = QTableView()
-            self.corpActionTable.setWindowTitle("Corp Actions")
-            self.corpActionTable.resize(700, 500)
-            self.corpActionTable.horizontalHeader().setStretchLastSection(True)
-            self.corpActionTable.setAlternatingRowColors(True)
-            self.corpActionTable.model = PandasModel(
-                self.dataMgr.get_corpAction_data(self.tickerBox.text())
-            )
-            self.corpActionTable.setModel(self.corpActionTable.model)
-        else:
-            self.corpActionTable.model = PandasModel(
-                self.dataMgr.get_corpAction_data(self.tickerBox.text())
-            )
-            self.corpActionTable.setModel(self.corpActionTable.model)
+        self.corpActionTable.setTicker(self.tickerBox.text())
         self.corpActionTable.show()
 
 

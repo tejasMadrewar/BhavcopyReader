@@ -9,6 +9,7 @@
 
 # Finished
 
+- check valid ticker
 - model for the corp actions splits/bonus
 - modify updater to add data to postgres
 - get last updated date for pd_model
