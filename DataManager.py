@@ -37,11 +37,7 @@ class DataManager:
                 Data.low_price.label("Low"),
                 Data.close_price.label("Close"),
             )
-            .join(
-                Symbol,
-                Series
-                # Mkt
-            )
+            .join(Symbol)
             .filter((Series.series_name == "EQ") | (Series.series_name == "BE"))
             .filter(self.generate_symbol_id_filter(symbol.upper(), Data))
             .order_by(
