@@ -11,12 +11,13 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QVBoxLayout,
     QGridLayout,
+    QGroupBox,
     QFormLayout,
+    QDateEdit,
 )
 
+from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QAbstractTableModel, QModelIndex
-from PyQt5.QtGui import QValidator
-from PyQt5 import QtGui
 
 import sqlalchemy as db
 from matplotlib.backends.backend_qt5agg import FigureCanvas
@@ -116,10 +117,73 @@ class tickerLineEdit(QLineEdit):
         self.completer.model().setStringList(self.data)
 
 
-class periodComboBox(QComboBox):
+class datePeriodBox(QGroupBox):
     def __init__(self):
         super().__init__()
-        self.addItems([str(i) + "y" for i in range(1, 20)])
+        self.setTitle("Period")
+        self.setCheckable(True)
+        self.cBox = QComboBox()
+        self.cBox.addItems([str(i) + "y" for i in range(1, 20)])
+        self.boxLayout = QVBoxLayout()
+        self.boxLayout.addWidget(self.cBox)
+        self.setLayout(self.boxLayout)
+
+    def getTimeRange(self):
+        pass
+
+    def reset(self):
+        pass
+
+
+class dateRangeBox(QGroupBox):
+    def __init__(self):
+        super().__init__()
+        self.setTitle("Time Range")
+        self.setCheckable(True)
+        self.boxLayout = QFormLayout()
+
+        self.fromDatePicker = QDateEdit(calendarPopup=True)
+        self.fromDatePicker.setDateTime(QtCore.QDateTime.currentDateTime())
+
+        self.toDatePicker = QDateEdit(calendarPopup=True)
+        self.toDatePicker.setDateTime(QtCore.QDateTime.currentDateTime())
+
+        self.boxLayout.addRow("From:", self.fromDatePicker)
+        self.boxLayout.addRow("To:", self.toDatePicker)
+
+        self.setLayout(self.boxLayout)
+
+    def getTimeRange(self):
+        pass
+
+    def reset(self):
+        pass
+
+
+class timeFilterBox(QGroupBox):
+    def __init__(self):
+        super().__init__()
+        self.filterBoxLayout = QFormLayout()
+        self.setCheckable(True)
+        self.setChecked(False)
+        self.setTitle("Time filter")
+        self.datePeriodBox = datePeriodBox()
+        self.dateRangeBox = dateRangeBox()
+        self.filterBoxLayout.addWidget(self.datePeriodBox)
+        self.filterBoxLayout.addWidget(self.dateRangeBox)
+        self.setLayout(self.filterBoxLayout)
+        self.reset()
+
+    def getTimeRange(self):
+        pass
+
+    def manageToggle(self):
+        pass
+
+    def reset(self):
+        self.datePeriodBox.setChecked(False)
+        self.datePeriodBox.toggled
+        self.dateRangeBox.setChecked(False)
 
 
 class customePushButton(QPushButton):
@@ -159,6 +223,7 @@ class MainWindow(QMainWindow):
 
         self.tickerBox = tickerLineEdit(self.dataMgr)
         self.corpActionTable = corpActionWidget(self.dataMgr)
+        self.periodFilter = timeFilterBox()
 
         self.plotBtn = customePushButton()
         self.plotBtn.setText("Plot")
@@ -166,9 +231,6 @@ class MainWindow(QMainWindow):
         self.showCorpActionBtn = customePushButton()
         self.showCorpActionBtn.setText("show corpAction")
         self.showCorpActionBtn.clicked.connect(self.show_corp_action)
-
-        # combobox
-        self.periodCombo = periodComboBox()
 
         # canvas
         self.canvas = FigureCanvas(plt.Figure(figsize=(15, 6)))
@@ -182,7 +244,7 @@ class MainWindow(QMainWindow):
         self.generalLayout.addWidget(self.canvas)
 
         self.menuBar1.addRow("Ticker", self.tickerBox)
-        self.menuBar1.addRow("Period", self.periodCombo)
+        self.menuBar1.addRow(self.periodFilter)
         self.menuBar1.addRow(self.plotBtn)
         self.menuBar1.addRow(self.showCorpActionBtn)
 

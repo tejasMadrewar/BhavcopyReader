@@ -6,6 +6,7 @@
 
 - get corp action adjusted data
 - add period filter in DataManager
+- save ticker data to the csv file
 
 # Finished
 

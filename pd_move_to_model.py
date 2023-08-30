@@ -77,8 +77,8 @@ def df_to_model(session, df):
 def get_raw_data(
     engine: db.engine, start_dt: datetime.datetime.date, end_dt: datetime.datetime.date
 ):
-    metadata = db.MetaData(engine)
-    metadata.reflect()
+    metadata = db.MetaData()
+    metadata.reflect(bind=engine)
     table = metadata.tables["raw_data"]
     end = max(start_dt, end_dt)
     start = min(start_dt, end_dt)

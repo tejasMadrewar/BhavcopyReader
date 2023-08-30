@@ -9,6 +9,7 @@ import timeit
 
 import pandas as pd
 from tqdm import tqdm
+import sqlalchemy as sa
 
 import config as cfg
 
@@ -105,7 +106,8 @@ def get_data_for_year(year, folder):
 
 
 def df_to_db(df: pd.DataFrame, engine, table_name="raw_data"):
-    if engine.has_table(table_name):
+    insp = sa.inspect(engine)
+    if insp.has_table(table_name):
         # remove duplicate data
         prev_dts = pd.read_sql_query(
             f"SELECT DISTINCT(date1) from {table_name}", engine
