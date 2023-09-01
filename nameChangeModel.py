@@ -30,7 +30,7 @@ class NameChangeManager:
         df.to_csv("symbolchange.csv", index=False)
         return df
 
-    def clean_data(self, df):
+    def clean_data(self, df: pd.DataFrame):
         sym = pd.read_sql_table(model.Symbol.__tablename__, cfg.SQL_CON)
         # left join 1
         df = df.merge(
@@ -46,7 +46,7 @@ class NameChangeManager:
         df = df.dropna()
         return df
 
-    def save_to_database(self, df, session):
+    def save_to_database(self, df: pd.DataFrame, session):
         # remove old dates
         model.Base.metadata.create_all(session.bind)
         # delete all previous data
@@ -61,19 +61,19 @@ class NameChangeManager:
         df = self.clean_data(df)
         self.save_to_database(df, self.session)
 
-    def gen_query_next(self, symbol_id):
+    def gen_query_next(self, symbol_id: str):
         query = self.session.query(self.tbl.old_symbol_id.label("symbols")).filter(
             (self.tbl.new_symbol_id == symbol_id)
         )
         return query
 
-    def gen_query_prev(self, symbol_id):
+    def gen_query_prev(self, symbol_id: str):
         query = self.session.query(self.tbl.new_symbol_id.label("symbols")).filter(
             (self.tbl.old_symbol_id == symbol_id)
         )
         return query
 
-    def get_all_symbol_ids(self, symbol_id):
+    def get_all_symbol_ids(self, symbol_id: str):
         if symbol_id == None:
             return []
         data = set()
@@ -91,7 +91,7 @@ class NameChangeManager:
         data = list(data)
         return data
 
-    def get_id_of_symbol(self, symbol_name):
+    def get_id_of_symbol(self, symbol_name: str):
         query = self.session.query(self.symbolTbl.id.label("symbols")).filter(
             (self.symbolTbl.symbol_name == symbol_name)
         )
@@ -101,7 +101,7 @@ class NameChangeManager:
         else:
             return result[0][0]
 
-    def get_ids_of_symbol(self, symbol_name):
+    def get_ids_of_symbol(self, symbol_name: str):
         return self.get_all_symbol_ids(self.get_id_of_symbol(symbol_name))
 
 
