@@ -42,11 +42,16 @@ def get_data(url):
 
 
 def downloadIndex(indexName, downloadFolder):
-    print(f"Downloading index data of {indexName}")
+    print(f"Downloading index data of '{indexName}'")
     if indexName in indexData:
         url = indexData[indexName]
+        filename = url.split("/")[-1]
+        os.makedirs(downloadFolder, exist_ok=True)
+        if os.path.isfile(os.path.join(downloadFolder, filename)):
+            print(f"'{filename}' file already exists. Skipping download..")
+            return
         text = get_data(url)
-        with open(os.path.join(downloadFolder, url.split("/")[-1]), "w") as f:
+        with open(os.path.join(downloadFolder, filename), "w") as f:
             f.write(text)
     else:
         print(f"URL for {indexName} does not exists.")
@@ -54,10 +59,8 @@ def downloadIndex(indexName, downloadFolder):
 
 def downloadAll(downloadFolder):
     folder = os.path.join(
-        downloadFolder, datetime.date.today().strftime("%Y-%m-%d_index_data")
+        downloadFolder, datetime.date.today().strftime("index_data/%Y-%m-%d")
     )
-    if not os.path.exists(folder):
-        os.makedirs(folder)
     for i in indexData:
         downloadIndex(i, folder)
         time.sleep(2)
