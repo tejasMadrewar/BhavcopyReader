@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QHBoxLayout,
     QVBoxLayout,
+    QTabWidget,
     QGridLayout,
     QGroupBox,
     QFormLayout,
@@ -27,6 +28,9 @@ import pandas as pd
 
 import DataManager as dMgr
 import config
+
+
+from datetime import datetime, timedelta
 
 
 class PandasModel(QAbstractTableModel):
@@ -117,11 +121,9 @@ class tickerLineEdit(QLineEdit):
         self.completer.model().setStringList(self.data)
 
 
-class datePeriodBox(QGroupBox):
+class datePeriodBox(QWidget):
     def __init__(self):
         super().__init__()
-        self.setTitle("Period")
-        self.setCheckable(True)
         self.cBox = QComboBox()
         self.cBox.addItems([str(i) + "y" for i in range(1, 20)])
         self.boxLayout = QVBoxLayout()
@@ -129,24 +131,32 @@ class datePeriodBox(QGroupBox):
         self.setLayout(self.boxLayout)
 
     def getTimeRange(self):
-        pass
+        year = self.get_years()
+        today = datetime.now().date()
+        delta = timedelta(year=year)
+        return (today - delta, today)
+
+    def get_years(self) -> int:
+        t = self.cBox.currentText()
+        return int(t[:-1])
 
     def reset(self):
         pass
 
 
-class dateRangeBox(QGroupBox):
+class dateRangeBox(QWidget):
     def __init__(self):
         super().__init__()
-        self.setTitle("Time Range")
-        self.setCheckable(True)
+        self.today = datetime.now().date()
         self.boxLayout = QFormLayout()
 
         self.fromDatePicker = QDateEdit(calendarPopup=True)
         self.fromDatePicker.setDateTime(QtCore.QDateTime.currentDateTime())
+        self.fromDatePicker.setMaximumDate(self.today)
 
         self.toDatePicker = QDateEdit(calendarPopup=True)
         self.toDatePicker.setDateTime(QtCore.QDateTime.currentDateTime())
+        self.toDatePicker.setMaximumDate(self.today)
 
         self.boxLayout.addRow("From:", self.fromDatePicker)
         self.boxLayout.addRow("To:", self.toDatePicker)
@@ -154,25 +164,20 @@ class dateRangeBox(QGroupBox):
         self.setLayout(self.boxLayout)
 
     def getTimeRange(self):
-        pass
+        return (self.fromDatePicker.date, self.toDatePicker.date)
 
     def reset(self):
         pass
 
 
-class timeFilterBox(QGroupBox):
+class timeFilterBox(QTabWidget):
     def __init__(self):
         super().__init__()
-        self.filterBoxLayout = QFormLayout()
-        self.setCheckable(True)
-        self.setChecked(False)
-        self.setTitle("Time filter")
         self.datePeriodBox = datePeriodBox()
         self.dateRangeBox = dateRangeBox()
-        self.filterBoxLayout.addWidget(self.datePeriodBox)
-        self.filterBoxLayout.addWidget(self.dateRangeBox)
-        self.setLayout(self.filterBoxLayout)
-        self.reset()
+        self.addTab(self.datePeriodBox, "Period")
+        self.addTab(self.dateRangeBox, "Range")
+        self.setDocumentMode(True)
 
     def getTimeRange(self):
         pass
@@ -181,9 +186,7 @@ class timeFilterBox(QGroupBox):
         pass
 
     def reset(self):
-        self.datePeriodBox.setChecked(False)
-        self.datePeriodBox.toggled
-        self.dateRangeBox.setChecked(False)
+        pass
 
 
 class customePushButton(QPushButton):
