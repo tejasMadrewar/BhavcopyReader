@@ -6,6 +6,7 @@ import time
 import config as cfg
 
 indexData = {
+    "symbolChange": "https://archives.nseindia.com/content/equities/symbolchange.csv",
     "50": "https://archives.nseindia.com/content/indices/ind_nifty50list.csv",
     "n50": "https://www.niftyindices.com/IndexConstituent/ind_niftynext50list.csv",
     "100": "https://archives.nseindia.com/content/indices/ind_nifty100list.csv",
@@ -92,8 +93,14 @@ def downloadIndex(indexName, downloadFolder):
         if os.path.isfile(os.path.join(downloadFolder, filename)):
             print(f"'{filename}' file already exists. Skipping download..")
             return
-        time.sleep(1)
-        text = get_data(url)
+        time.sleep(2)
+        text = None
+        for i in range(5):
+            try:
+                text = get_data(url)
+                break
+            except:
+                print(f"Retrying the download {i}")
         with open(os.path.join(downloadFolder, filename), "w") as f:
             f.write(text)
     else:
