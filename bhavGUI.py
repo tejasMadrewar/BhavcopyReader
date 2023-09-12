@@ -133,7 +133,7 @@ class datePeriodBox(QWidget):
     def getTimeRange(self):
         year = self.get_years()
         today = datetime.now().date()
-        delta = timedelta(year=year)
+        delta = timedelta(days=year * 365)
         return (today - delta, today)
 
     def get_years(self) -> int:
@@ -141,22 +141,23 @@ class datePeriodBox(QWidget):
         return int(t[:-1])
 
     def reset(self):
-        pass
+        self.cBox.setEditText("1y")
 
 
 class dateRangeBox(QWidget):
     def __init__(self):
         super().__init__()
-        self.today = datetime.now().date()
+        self.defaultTo = datetime.now()
+        self.defaultFrom = datetime.now() - timedelta(days=1 * 365)
         self.boxLayout = QFormLayout()
 
         self.fromDatePicker = QDateEdit(calendarPopup=True)
-        self.fromDatePicker.setDateTime(QtCore.QDateTime.currentDateTime())
-        self.fromDatePicker.setMaximumDate(self.today)
+        self.fromDatePicker.setDateTime(self.defaultFrom)
+        self.fromDatePicker.setMaximumDate(self.defaultTo)
 
         self.toDatePicker = QDateEdit(calendarPopup=True)
-        self.toDatePicker.setDateTime(QtCore.QDateTime.currentDateTime())
-        self.toDatePicker.setMaximumDate(self.today)
+        self.toDatePicker.setDateTime(self.defaultTo)
+        self.toDatePicker.setMaximumDate(self.defaultTo)
 
         self.boxLayout.addRow("From:", self.fromDatePicker)
         self.boxLayout.addRow("To:", self.toDatePicker)
@@ -164,10 +165,14 @@ class dateRangeBox(QWidget):
         self.setLayout(self.boxLayout)
 
     def getTimeRange(self):
-        return (self.fromDatePicker.date, self.toDatePicker.date)
+        return (
+            self.fromDatePicker.date().toPyDate(),
+            self.toDatePicker.date().toPyDate(),
+        )
 
     def reset(self):
-        pass
+        self.fromDatePicker.setDateTime(self.defaultFrom)
+        self.toDatePicker.setDateTime(self.defaultTo)
 
 
 class timeFilterBox(QTabWidget):
@@ -178,9 +183,13 @@ class timeFilterBox(QTabWidget):
         self.addTab(self.datePeriodBox, "Period")
         self.addTab(self.dateRangeBox, "Range")
         self.setDocumentMode(True)
+        # self.currentChanged.connect(self.test)
+
+    def test(self, value):
+        print(value, self.getTimeRange())
 
     def getTimeRange(self):
-        pass
+        return self.currentWidget().getTimeRange()
 
     def manageToggle(self):
         pass
@@ -264,7 +273,7 @@ class MainWindow(QMainWindow):
 
     def update_chart(self):
         ticker = self.tickerBox.text()
-        print(ticker)
+        print(ticker, self.periodFilter.getTimeRange())
         self.ax.clear()
         self.ax.set_title(ticker)
         self.dataMgr.plot_equity(ticker, ax=self.ax)
