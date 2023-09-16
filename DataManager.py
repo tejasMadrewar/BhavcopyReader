@@ -2,6 +2,7 @@ import pandas as pd
 import sqlalchemy as db
 from sqlalchemy.sql import exists
 import mplfinance as mpf
+from datetime import date, datetime
 
 from pd_model import Symbol, Data, Mkt, Series, Security1, CorpAction
 import config as cfg
@@ -26,7 +27,9 @@ class DataManager:
         ids = self.nameChange.get_ids_of_symbol(symbol_name)
         return db.or_(table.symbol_id == i for i in ids)
 
-    def get_equity_data(self, symbol: str, adjusted=True):
+    def get_equity_data(
+        self, symbol: str, fromDate: date = None, toDate: date = None, adjusted=True
+    ):
         query = (
             self.session.query(
                 Data.date1.label("Date"),
@@ -44,7 +47,26 @@ class DataManager:
                 # db.desc(Data.date1)
                 Data.date1
             )
+            .distinct(Data.date1)
         )
+
+        filt = ()
+
+        if fromDate:
+            filt = filt + (
+                Data.date1
+                >= datetime(year=fromDate.year, month=fromDate.month, day=fromDate.day),
+            )
+
+        if toDate:
+            filt = filt + (
+                Data.date1
+                <= datetime(year=toDate.year, month=toDate.month, day=toDate.day),
+            )
+
+        if filt != ():
+            query = query.filter(*filt)
+        print(query.statement)
         df = self.query_to_df(query)
         return df
 
@@ -111,6 +133,15 @@ def test_is_symbol_valid():
         print(t, dMgr.is_ticker_valid(t))
 
 
+def test_date_filter():
+    session = db.orm.Session(cfg.SQL_CON)
+    dMgr = DataManager(session)
+    fromDate = date(2022, 1, 1)
+    toDate = date(2023, 1, 10)
+    df = dMgr.get_equity_data("TCS", fromDate=fromDate, toDate=toDate)
+    print(df)
+
+
 def main():
     session = db.orm.Session(cfg.SQL_CON)
     dMgr = DataManager(session)
@@ -123,4 +154,5 @@ def main():
 if __name__ == "__main__":
     # main()
     # test_get_corp_action()
-    test_is_symbol_valid()
+    # test_is_symbol_valid()
+    test_date_filter()

@@ -24,7 +24,7 @@ indexData = {
     "bank": "https://www.niftyindices.com/IndexConstituent/ind_niftybanklist.csv",
     "finance": "https://www.niftyindices.com/IndexConstituent/ind_niftyfinancelist.csv",
     "finance2550": "https://www.niftyindices.com/IndexConstituent/ind_niftyfinancialservices25-50list.csv",
-    "financeservicesExBank": "https://www.niftyindices.com/IndexConstituent/ind_niftyfinancialservicesexbank_list.xlsx",
+    # "financeservicesExBank": "https://www.niftyindices.com/IndexConstituent/ind_niftyfinancialservicesexbank_list.xlsx",
     "fmcg": "https://www.niftyindices.com/IndexConstituent/ind_niftyfmcglist.csv",
     "healthCare": "https://www.niftyindices.com/IndexConstituent/ind_niftyhealthcarelist.csv",
     "it": "https://www.niftyindices.com/IndexConstituent/ind_niftyitlist.csv",
@@ -101,7 +101,7 @@ def downloadIndex(indexName, downloadFolder):
                 break
             except:
                 print(f"Retrying the download {i}")
-        with open(os.path.join(downloadFolder, filename), "w") as f:
+        with open(os.path.join(downloadFolder, filename), "w", encoding="utf-8") as f:
             f.write(text)
     else:
         print(f"URL for {indexName} does not exists.")
