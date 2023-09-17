@@ -54,19 +54,17 @@ class DataManager:
 
         if fromDate:
             filt = filt + (
-                Data.date1
-                >= datetime(year=fromDate.year, month=fromDate.month, day=fromDate.day),
+                Data.date1 >= datetime(fromDate.year, fromDate.month, fromDate.day),
             )
 
         if toDate:
             filt = filt + (
-                Data.date1
-                <= datetime(year=toDate.year, month=toDate.month, day=toDate.day),
+                Data.date1 <= datetime(toDate.year, toDate.month, toDate.day),
             )
 
         if filt != ():
             query = query.filter(*filt)
-        print(query.statement)
+        # print(query.statement)
         df = self.query_to_df(query)
         return df
 
@@ -101,9 +99,11 @@ class DataManager:
         df = pd.read_sql_query(query.statement, self.session.get_bind())
         return df
 
-    def plot_equity(self, symbol: str, ax=None):
+    def plot_equity(
+        self, symbol: str, fromDate: date = None, toDate: date = None, ax=None
+    ):
         if self.is_ticker_valid(symbol):
-            df = self.get_equity_data(symbol)
+            df = self.get_equity_data(symbol, fromDate=fromDate, toDate=toDate)
             # print(df.dtypes)
             if ax == None:
                 mpf.plot(df, type="candle", mav=(50, 200))

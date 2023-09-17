@@ -5,11 +5,12 @@
 # task
 
 - get corp action adjusted data
-- add period filter in DataManager
 - save ticker data to the csv file
 
 # Finished
 
+- add period filter in BhavGui
+- add period filter in DataManager
 - check valid ticker
 - model for the corp actions splits/bonus
 - modify updater to add data to postgres

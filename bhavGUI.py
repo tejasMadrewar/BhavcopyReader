@@ -185,14 +185,8 @@ class timeFilterBox(QTabWidget):
         self.setDocumentMode(True)
         # self.currentChanged.connect(self.test)
 
-    def test(self, value):
-        print(value, self.getTimeRange())
-
     def getTimeRange(self):
         return self.currentWidget().getTimeRange()
-
-    def manageToggle(self):
-        pass
 
     def reset(self):
         pass
@@ -273,10 +267,13 @@ class MainWindow(QMainWindow):
 
     def update_chart(self):
         ticker = self.tickerBox.text()
-        print(ticker, self.periodFilter.getTimeRange())
+        dates = self.periodFilter.getTimeRange()
+        print(ticker, dates)
         self.ax.clear()
         self.ax.set_title(ticker)
-        self.dataMgr.plot_equity(ticker, ax=self.ax)
+        self.dataMgr.plot_equity(
+            ticker, fromDate=min(dates), toDate=max(dates), ax=self.ax
+        )
         self.canvas.draw()
 
     def show_corp_action(self):
