@@ -7,6 +7,7 @@ from datetime import date, datetime
 from pd_model import Symbol, Data, Mkt, Series, Security1, CorpAction
 import config as cfg
 import nameChangeModel as nameChange
+from parseCorpAction import parseCorpAction
 
 
 class DataManager:
@@ -86,7 +87,7 @@ class DataManager:
         )
         # print(query.statement)
         df = pd.read_sql_query(query.statement, self.session.get_bind())
-        df.drop_duplicates(["symbol", "ex_dt", "purpose"], inplace=True)
+        # df.drop_duplicates(["symbol", "ex_dt", "purpose"], inplace=True)
         df.reset_index(drop=True, inplace=True)
         return df
 
@@ -151,8 +152,17 @@ def main():
     print(dMgr.get_all_tickers())
 
 
+def test_corp_action_parse():
+    session = db.orm.Session(cfg.SQL_CON)
+    dMgr = DataManager(session)
+    data = dMgr.get_corpAction_data("INFY")
+    d = parseCorpAction(data)
+    print(d)
+
+
 if __name__ == "__main__":
     # main()
     # test_get_corp_action()
     # test_is_symbol_valid()
-    test_date_filter()
+    # test_date_filter()
+    test_corp_action_parse()

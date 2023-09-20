@@ -2,6 +2,7 @@ import requests
 import datetime
 import os
 import time
+from multiprocessing import Pool
 
 import config as cfg
 
@@ -76,6 +77,11 @@ headers = {
 timeout = 30
 
 
+def pool_handler(func, args, poolSize=3):
+    p = Pool(poolSize)
+    p.starmap(func, args)
+
+
 def get_data(url):
     session = requests.Session()
     request = session.get(url, headers=headers, timeout=timeout)
@@ -95,12 +101,13 @@ def downloadIndex(indexName, downloadFolder):
             return
         time.sleep(2)
         text = None
-        for i in range(5):
+        for i in range(10):
             try:
                 text = get_data(url)
                 break
             except:
                 print(f"Retrying the download {i}")
+                time.sleep(1)
         with open(os.path.join(downloadFolder, filename), "w", encoding="utf-8") as f:
             f.write(text)
     else:
@@ -111,8 +118,10 @@ def downloadAll(downloadFolder):
     folder = os.path.join(
         downloadFolder, datetime.date.today().strftime("index_data/%Y-%m-%d")
     )
-    for i in indexData:
-        downloadIndex(i, folder)
+    # for i in indexData:
+    # downloadIndex(i, folder)
+    args = [(i, cfg.DOWNLOAD_FOLDER) for i in indexData.keys()]
+    pool_handler(downloadIndex, args)
 
 
 def update():

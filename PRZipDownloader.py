@@ -1,6 +1,7 @@
 import datetime
 import os.path
 import requests
+from multiprocessing import Pool
 
 import config as cfg
 
@@ -30,10 +31,17 @@ def PRZip_download_for_day(day, folder_location):
             print("%s" % (format(e)) + " Or Check if Its a Holiday. " + str(i))
 
 
+def pool_handler(func, args, poolSize=4):
+    p = Pool(poolSize)
+    p.starmap(func, args)
+
+
 def PRZip_download_for_days(days, folder_location):
     print(f"Downloading PR zip files for {len(days)} days..")
-    for day in days:
-        PRZip_download_for_day(day, folder_location)
+    # for day in days:
+    # PRZip_download_for_day(day, folder_location)
+    args = [(day, folder_location) for day in days]
+    pool_handler(PRZip_download_for_day, args)
     print(f"Downloading Finished.")
 
 
