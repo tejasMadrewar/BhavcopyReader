@@ -120,7 +120,7 @@ def downloadAll(downloadFolder):
     )
     # for i in indexData:
     # downloadIndex(i, folder)
-    args = [(i, cfg.DOWNLOAD_FOLDER) for i in indexData.keys()]
+    args = [(i, folder) for i in indexData.keys()]
     pool_handler(downloadIndex, args)
 
 
