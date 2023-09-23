@@ -5,10 +5,13 @@
 # task
 
 - get corp action adjusted data
+- parse corp action data
+- save corp action data in db
 - save ticker data to the csv file
 
 # Finished
 
+- download corp action data from the bse
 - add period filter in BhavGui
 - add period filter in DataManager
 - check valid ticker
