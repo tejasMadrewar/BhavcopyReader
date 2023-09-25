@@ -56,6 +56,10 @@ class Bonus(Base, Csv_format):
     __tablename__ = "bonus"
 
 
+class Dividend(Base, Csv_format):
+    __tablename__ = "dividend"
+
+
 class BseCorpActDownloader:
     def __init__(self) -> None:
         self.baseUrl = "https://www.bseindia.com"
@@ -158,9 +162,6 @@ class BseCorpActDBManager:
         self.session: Session = self.Session()
         self.create_all()
 
-    def update(self):
-        pass
-
     def get_new_rows(
         self,
         model,
@@ -206,22 +207,21 @@ class BseCorpActDBManager:
         diff = pd.concat([df, old_data]).drop_duplicates(keep=False)
         return diff
 
-    def update_corp_split_csv(self, csv_path: str):
+    def csv_to_table(self, csv_path: str, model):
         df = pd.read_csv(csv_path)
-        # print(df)
-        # re = df["Purpose"].str.extract("Stock  Split From Rs.(\d+)\/- to Rs.(\d+)\/-")
-        # df = df.join(re)
-        diff = self.clean_corp_df(df, Split)
-        print(f"Inserted {len(diff)} rows in {Split.__tablename__} table")
-        self.session.bulk_insert_mappings(Split, diff.to_dict(orient="records"))
+        diff = self.clean_corp_df(df, model)
+        print(f"Inserted {len(diff)} rows in {model.__tablename__} table")
+        self.session.bulk_insert_mappings(model, diff.to_dict(orient="records"))
         self.session.commit()
 
-    def update_corp_bonus_csv(self, csv_path: str):
-        df = pd.read_csv(csv_path)
-        diff = self.clean_corp_df(df, Bonus)
-        print(f"Inserted {len(diff)} rows in {Bonus.__tablename__} table")
-        self.session.bulk_insert_mappings(Bonus, diff.to_dict(orient="records"))
-        self.session.commit()
+    def update_corp_split_table(self, csv_path: str):
+        self.csv_to_table(csv_path, Split)
+
+    def update_corp_bonus_table(self, csv_path: str):
+        self.csv_to_table(csv_path, Bonus)
+
+    def update_corp_divident_table(self, csv_path: str):
+        self.csv_to_table(csv_path, Dividend)
 
     def test_insert(self):
         print("testing ...")
@@ -239,12 +239,15 @@ class BseCorpActDBManager:
         self.session.bulk_insert_mappings(Symbol, diff.to_dict(orient="records"))
         self.session.commit()
 
-    def test(self):
-        self.update_corp_split_csv(
+    def update(self):
+        self.update_corp_split_table(
             r"C:\Users\TEJAS\Downloads\PR00_bhavcopy_data_all\corp_data\2023-09-24\Stock__Split.csv"
         )
-        self.update_corp_bonus_csv(
+        self.update_corp_bonus_table(
             r"C:\Users\TEJAS\Downloads\PR00_bhavcopy_data_all\corp_data\2023-09-24\Bonus_Issue.csv"
+        )
+        self.update_corp_divident_table(
+            r"C:\Users\TEJAS\Downloads\PR00_bhavcopy_data_all\corp_data\2023-09-24\Dividend.csv"
         )
 
     def get_bonus_actions(self, ticker: str):
@@ -257,10 +260,18 @@ class BseCorpActDBManager:
         split = pd.read_sql_query(stmt, self.session.get_bind())
         return split
 
+    def get_dividend_actions(self, ticker: str):
+        stmt = (
+            self.session.query(Dividend).filter(Dividend.short_name == ticker).statement
+        )
+        dividend = pd.read_sql_query(stmt, self.session.get_bind())
+        return dividend
+
     def get_corp_actions(self, ticker: str):
         bonus = self.get_bonus_actions(ticker)
         split = self.get_split_actions(ticker)
-        df = pd.concat([bonus, split])
+        dividend = self.get_dividend_actions(ticker)
+        df = pd.concat([bonus, split, dividend])
         print(df)
         return df
 
@@ -290,9 +301,9 @@ def update():
 
 def test():
     dbmgr = BseCorpActDBManager()
-    # dbmgr.test()
-    # dbmgr.get_corp_actions("TITAN")
-    dbmgr.test_insert()
+    dbmgr.update()
+    df = dbmgr.get_corp_actions("TITAN")
+    df.to_csv("titan.csv")
 
 
 def main():
