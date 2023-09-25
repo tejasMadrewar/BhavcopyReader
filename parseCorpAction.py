@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import datetime
 import time
 import requests
@@ -8,6 +9,51 @@ from pprint import pprint
 from multiprocessing import Pool
 
 from config import SQL_CON, DOWNLOAD_FOLDER
+
+import sqlalchemy as db
+from sqlalchemy.orm.session import Session
+from sqlalchemy.orm import declarative_base
+
+CORP_ENGINE = db.create_engine("sqlite:///corp_action.db")
+
+# bse corp action sqlalchamy model
+Base = declarative_base()
+
+
+class Symbol(Base):
+    __tablename__ = "symbol"
+    id = db.Column(
+        db.SmallInteger().with_variant(db.Integer, "sqlite"), primary_key=True
+    )
+    symbol_name = db.Column(db.String(10), nullable=False)
+    db.UniqueConstraint(symbol_name)
+
+    def __repr__(self) -> str:
+        return f"<Symbol({self.id}, {self.symbol_name})>"
+
+
+class Csv_format:
+    id = db.Column(db.Integer, primary_key=True)
+    scrip_code = db.Column(db.Integer())
+    short_name = db.Column(db.String(10))
+    Ex_date = db.Column(db.DateTime())
+    Purpose = db.Column(db.String(100))
+    RD_Date = db.Column(db.DateTime())
+    BCRD_FROM = db.Column(db.DateTime())
+    BCRD_TO = db.Column(db.DateTime())
+    ND_START_DATE = db.Column(db.DateTime())
+    ND_END_DATE = db.Column(db.DateTime())
+    payment_date = db.Column(db.DateTime())
+    exdate = db.Column(db.Integer())
+    long_name = db.Column(db.String(100))
+
+
+class Split(Base, Csv_format):
+    __tablename__ = "split"
+
+
+class Bonus(Base, Csv_format):
+    __tablename__ = "bonus"
 
 
 class BseCorpActDownloader:
@@ -105,6 +151,123 @@ class BseCorpActDownloader:
         self.pool_handler(self.download_corpAction, args, 4)
 
 
+class BseCorpActDBManager:
+    def __init__(self, engine=CORP_ENGINE) -> None:
+        self.engine = engine
+        self.Session = db.orm.sessionmaker(bind=self.engine)
+        self.session: Session = self.Session()
+        self.create_all()
+
+    def update(self):
+        pass
+
+    def get_new_rows(
+        self,
+        model,
+        col_names,
+        new_data: pd.DataFrame,
+    ):
+        if type(col_names) != list:
+            col_names = [col_names]
+        new_data = pd.DataFrame(new_data[col_names], columns=col_names)
+        stmt = self.session.query(model).statement
+        old_data = pd.read_sql_query(stmt, con=self.session.get_bind())
+        diff = pd.merge(new_data, old_data, how="left", on=col_names)
+        # diff = pd.DataFrame(diff[diff.isna().any(axis=1)][col_name])
+        diff = pd.DataFrame(diff[diff["id"].isna()][col_names])
+        return diff
+
+    def clean_corp_df(self, df: pd.DataFrame, model):
+        date_cols = [
+            "Ex_date",
+            "RD_Date",
+            "BCRD_FROM",
+            "BCRD_TO",
+            "ND_START_DATE",
+            "ND_END_DATE",
+            "payment_date",
+        ]
+        for d in date_cols:
+            df[d] = pd.to_datetime(df[d], errors="coerce")
+        # df.to_csv("test.csv", index=False)
+        # df = df.tail(100)
+
+        df.replace(
+            {
+                pd.NaT: None,
+            },
+            inplace=True,
+        )
+        # read old data
+        stmt = self.session.query(model).statement
+        old_data = pd.read_sql_query(stmt, con=self.session.get_bind())
+        old_data.drop("id", axis=1, inplace=True)
+        # remove duplicates
+        diff = pd.concat([df, old_data]).drop_duplicates(keep=False)
+        return diff
+
+    def update_corp_split_csv(self, csv_path: str):
+        df = pd.read_csv(csv_path)
+        # print(df)
+        # re = df["Purpose"].str.extract("Stock  Split From Rs.(\d+)\/- to Rs.(\d+)\/-")
+        # df = df.join(re)
+        diff = self.clean_corp_df(df, Split)
+        print(f"Inserted {len(diff)} rows in {Split.__tablename__} table")
+        self.session.bulk_insert_mappings(Split, diff.to_dict(orient="records"))
+        self.session.commit()
+
+    def update_corp_bonus_csv(self, csv_path: str):
+        df = pd.read_csv(csv_path)
+        diff = self.clean_corp_df(df, Bonus)
+        print(f"Inserted {len(diff)} rows in {Bonus.__tablename__} table")
+        self.session.bulk_insert_mappings(Bonus, diff.to_dict(orient="records"))
+        self.session.commit()
+
+    def test_insert(self):
+        print("testing ...")
+        new_data = pd.DataFrame(
+            [
+                "test8",
+                "test6",
+                "test7",
+                "test9",
+            ],
+            columns=["symbol_name"],
+        )
+        diff = self.get_new_rows(Symbol, "symbol_name", new_data)
+        print(diff.to_dict(orient="records"))
+        self.session.bulk_insert_mappings(Symbol, diff.to_dict(orient="records"))
+        self.session.commit()
+
+    def test(self):
+        self.update_corp_split_csv(
+            r"C:\Users\TEJAS\Downloads\PR00_bhavcopy_data_all\corp_data\2023-09-24\Stock__Split.csv"
+        )
+        self.update_corp_bonus_csv(
+            r"C:\Users\TEJAS\Downloads\PR00_bhavcopy_data_all\corp_data\2023-09-24\Bonus_Issue.csv"
+        )
+
+    def get_bonus_actions(self, ticker: str):
+        stmt = self.session.query(Bonus).filter(Bonus.short_name == ticker).statement
+        bonus = pd.read_sql_query(stmt, self.session.get_bind())
+        return bonus
+
+    def get_split_actions(self, ticker: str):
+        stmt = self.session.query(Split).filter(Split.short_name == ticker).statement
+        split = pd.read_sql_query(stmt, self.session.get_bind())
+        return split
+
+    def get_corp_actions(self, ticker: str):
+        bonus = self.get_bonus_actions(ticker)
+        split = self.get_split_actions(ticker)
+        df = pd.concat([bonus, split])
+        print(df)
+        return df
+
+    def create_all(self):
+        Base.metadata.create_all(self.engine)
+
+
 def parseBonus(data: pd.DataFrame):
     print(data)
     bonus_regex1 = "^BONUS (\d):(\d).*"
@@ -125,8 +288,16 @@ def update():
     downloader.download_allCorpAction(folder)
 
 
+def test():
+    dbmgr = BseCorpActDBManager()
+    # dbmgr.test()
+    # dbmgr.get_corp_actions("TITAN")
+    dbmgr.test_insert()
+
+
 def main():
-    update()
+    # update()
+    test()
 
 
 if __name__ == "__main__":
