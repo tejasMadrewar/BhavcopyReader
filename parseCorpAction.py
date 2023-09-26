@@ -150,10 +150,6 @@ class BseCorpActDownloader:
         print(f"Finished downloading {pur_name}")
 
     def download_allCorpAction(self):
-        folder = os.path.join(
-            self.folder, datetime.date.today().strftime("corp_data/%Y-%m-%d")
-        )
-        os.makedirs(folder, exist_ok=True)
         pur_data = self.download_purpose_code()
         ind_data = self.download_industry_code()
         self.download_industry_code()
