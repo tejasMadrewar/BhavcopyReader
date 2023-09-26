@@ -268,17 +268,6 @@ class BseCorpActDBManager:
         Base.metadata.create_all(self.engine)
 
 
-def parseBonus(data: pd.DataFrame):
-    print(data)
-    bonus_regex1 = "^BONUS (\d):(\d).*"
-    t = data["purpose"].str.extract(bonus_regex1)
-    print(t)
-
-
-def parseCorpAction(data: pd.DataFrame):
-    parseBonus(data)
-
-
 def update():
     downloader = BseCorpActDBManager()
     downloader.update()
