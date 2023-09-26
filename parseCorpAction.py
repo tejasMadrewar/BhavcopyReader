@@ -61,7 +61,11 @@ class Dividend(Base, Csv_format):
 
 
 class BseCorpActDownloader:
-    def __init__(self) -> None:
+    def __init__(self, downloadFolder) -> None:
+        self.folder = os.path.join(
+            downloadFolder, datetime.date.today().strftime("corp_data/%Y-%m-%d")
+        )
+        os.makedirs(self.folder, exist_ok=True)
         self.baseUrl = "https://www.bseindia.com"
         self.industryUrl = (
             "https://api.bseindia.com/BseIndiaAPI/api/ddlIndustry/w?flag=0"
@@ -106,8 +110,8 @@ class BseCorpActDownloader:
         j = json.loads(text)
         return pd.DataFrame(j)
 
-    def download_purpose_code(self, dwnFolder=""):
-        filename = os.path.join(dwnFolder, "purpose_code.csv")
+    def download_purpose_code(self):
+        filename = os.path.join(self.folder, "purpose_code.csv")
         if os.path.isfile(filename):
             print(f"{filename} is already downloaded.")
             return pd.read_csv(filename)
@@ -119,8 +123,8 @@ class BseCorpActDownloader:
         print("Finished downloading purpose code.")
         return df
 
-    def download_industry_code(self, dwnFolder=""):
-        filename = os.path.join(dwnFolder, "industry_code.csv")
+    def download_industry_code(self):
+        filename = os.path.join(self.folder, "industry_code.csv")
         if os.path.isfile(filename):
             print(f"{filename} is already downloaded.")
             return pd.read_csv(filename)
@@ -132,8 +136,8 @@ class BseCorpActDownloader:
         print("Finished downloading industry code.")
         return df
 
-    def download_corpAction(self, pur_code, pur_name, dwnFolder=""):
-        filename = os.path.join(dwnFolder, f'{pur_name.replace(" ","_")}.csv')
+    def download_corpAction(self, pur_code, pur_name):
+        filename = os.path.join(self.folder, f'{pur_name.replace(" ","_")}.csv')
         if os.path.isfile(filename):
             print(f"{filename} is already downloaded.")
             return
@@ -145,19 +149,26 @@ class BseCorpActDownloader:
         )
         print(f"Finished downloading {pur_name}")
 
-    def download_allCorpAction(self, dwnFolder=""):
-        pur_data = self.download_purpose_code(dwnFolder)
-        self.download_industry_code(dwnFolder)
+    def download_allCorpAction(self):
+        folder = os.path.join(
+            self.folder, datetime.date.today().strftime("corp_data/%Y-%m-%d")
+        )
+        os.makedirs(folder, exist_ok=True)
+        pur_data = self.download_purpose_code()
+        ind_data = self.download_industry_code()
+        self.download_industry_code()
         args = (
             pur_data[["PURPOSE_CODE", "PURPOSE_NAME"]].to_records(index=False).tolist()
         )
-        args = [i + (dwnFolder,) for i in args]
+        args = [i for i in args]
         self.pool_handler(self.download_corpAction, args, 4)
 
 
 class BseCorpActDBManager:
-    def __init__(self, engine=CORP_ENGINE) -> None:
+    def __init__(self, engine=CORP_ENGINE, dwnFolder=DOWNLOAD_FOLDER) -> None:
+        self.dwnldr = BseCorpActDownloader(dwnFolder)
         self.engine = engine
+        self.download_folder = dwnFolder
         self.Session = db.orm.sessionmaker(bind=self.engine)
         self.session: Session = self.Session()
         self.create_all()
@@ -190,12 +201,11 @@ class BseCorpActDBManager:
         ]
         for d in date_cols:
             df[d] = pd.to_datetime(df[d], errors="coerce")
-        # df.to_csv("test.csv", index=False)
-        # df = df.tail(100)
 
         df.replace(
             {
                 pd.NaT: None,
+                np.nan: None,
             },
             inplace=True,
         )
@@ -210,9 +220,9 @@ class BseCorpActDBManager:
     def csv_to_table(self, csv_path: str, model):
         df = pd.read_csv(csv_path)
         diff = self.clean_corp_df(df, model)
-        print(f"Inserted {len(diff)} rows in {model.__tablename__} table")
         self.session.bulk_insert_mappings(model, diff.to_dict(orient="records"))
         self.session.commit()
+        print(f"Inserted {len(diff)} rows in {model.__tablename__} table")
 
     def update_corp_split_table(self, csv_path: str):
         self.csv_to_table(csv_path, Split)
@@ -223,32 +233,11 @@ class BseCorpActDBManager:
     def update_corp_divident_table(self, csv_path: str):
         self.csv_to_table(csv_path, Dividend)
 
-    def test_insert(self):
-        print("testing ...")
-        new_data = pd.DataFrame(
-            [
-                "test8",
-                "test6",
-                "test7",
-                "test9",
-            ],
-            columns=["symbol_name"],
-        )
-        diff = self.get_new_rows(Symbol, "symbol_name", new_data)
-        print(diff.to_dict(orient="records"))
-        self.session.bulk_insert_mappings(Symbol, diff.to_dict(orient="records"))
-        self.session.commit()
-
     def update(self):
-        self.update_corp_split_table(
-            r"C:\Users\TEJAS\Downloads\PR00_bhavcopy_data_all\corp_data\2023-09-24\Stock__Split.csv"
-        )
-        self.update_corp_bonus_table(
-            r"C:\Users\TEJAS\Downloads\PR00_bhavcopy_data_all\corp_data\2023-09-24\Bonus_Issue.csv"
-        )
-        self.update_corp_divident_table(
-            r"C:\Users\TEJAS\Downloads\PR00_bhavcopy_data_all\corp_data\2023-09-24\Dividend.csv"
-        )
+        self.dwnldr.download_allCorpAction()
+        self.update_corp_split_table(f"{self.dwnldr.folder}\Stock__Split.csv")
+        self.update_corp_bonus_table(f"{self.dwnldr.folder}\Bonus_Issue.csv")
+        self.update_corp_divident_table(f"{self.dwnldr.folder}\Dividend.csv")
 
     def get_bonus_actions(self, ticker: str):
         stmt = self.session.query(Bonus).filter(Bonus.short_name == ticker).statement
@@ -291,12 +280,8 @@ def parseCorpAction(data: pd.DataFrame):
 
 
 def update():
-    downloader = BseCorpActDownloader()
-    folder = os.path.join(
-        DOWNLOAD_FOLDER, datetime.date.today().strftime("corp_data/%Y-%m-%d")
-    )
-    os.makedirs(folder, exist_ok=True)
-    downloader.download_allCorpAction(folder)
+    downloader = BseCorpActDBManager()
+    downloader.update()
 
 
 def test():
@@ -307,8 +292,8 @@ def test():
 
 
 def main():
-    # update()
-    test()
+    update()
+    # test()
 
 
 if __name__ == "__main__":
