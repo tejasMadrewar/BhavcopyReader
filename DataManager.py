@@ -7,7 +7,7 @@ from datetime import date, datetime
 from pd_model import Symbol, Data, Mkt, Series, Security1, CorpAction
 import config as cfg
 import nameChangeModel as nameChange
-from parseCorpAction import parseCorpAction
+from bhavcopy_reader.BseCorpAction import parseCorpAction
 
 
 class DataManager:
