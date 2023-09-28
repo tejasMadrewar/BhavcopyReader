@@ -62,9 +62,11 @@ class Dividend(Base, Csv_format):
 
 class BseCorpActDownloader:
     def __init__(self, downloadFolder) -> None:
+        self.dTime = datetime.datetime.now()
         self.folder = os.path.join(
-            downloadFolder, datetime.date.today().strftime("corp_data/%Y-%m-%d")
+            downloadFolder, self.dTime.strftime(r"corp_data\%Y-%m-%d")
         )
+        # self.folder = os.path.join(downloadFolder, "corp_data/2023-09-27")
         os.makedirs(self.folder, exist_ok=True)
         self.baseUrl = "https://www.bseindia.com"
         self.industryUrl = (
@@ -139,7 +141,8 @@ class BseCorpActDownloader:
     def download_corpAction(self, pur_code, pur_name):
         filename = os.path.join(self.folder, f'{pur_name.replace(" ","_")}.csv')
         if os.path.isfile(filename):
-            print(f"{filename} is already downloaded.")
+            f = filename.split("\\")[-1]
+            print(f"{f} is already downloaded.")
             return
         url = f"https://api.bseindia.com/BseIndiaAPI/api/DefaultData/w?Purposecode={pur_code}&ddlcategorys=E&ddlindustrys=&scripcode=&segment=0&strSearch=S"
         df = self.jsonurl2df(url)
@@ -198,24 +201,29 @@ class BseCorpActDBManager:
         for d in date_cols:
             df[d] = pd.to_datetime(df[d], errors="coerce")
 
-        df.replace(
-            {
-                pd.NaT: None,
-                np.nan: None,
-            },
-            inplace=True,
-        )
         # read old data
         stmt = self.session.query(model).statement
         old_data = pd.read_sql_query(stmt, con=self.session.get_bind())
         old_data.drop("id", axis=1, inplace=True)
         # remove duplicates
         diff = pd.concat([df, old_data]).drop_duplicates(keep=False)
+        # replace NaT and nan
+        diff.replace(
+            {
+                pd.NaT: None,
+                np.nan: None,
+            },
+            inplace=True,
+        )
+        # filter data by the ex_date
+        diff = diff[diff["Ex_date"] <= self.dwnldr.dTime]
         return diff
 
     def csv_to_table(self, csv_path: str, model):
         df = pd.read_csv(csv_path)
         diff = self.clean_corp_df(df, model)
+        # print(diff)
+        # diff.to_csv(f"diff_{model.__tablename__}.csv")
         self.session.bulk_insert_mappings(model, diff.to_dict(orient="records"))
         self.session.commit()
         print(f"Inserted {len(diff)} rows in {model.__tablename__} table")
@@ -256,15 +264,59 @@ class BseCorpActDBManager:
         bonus = self.get_bonus_actions(ticker)
         split = self.get_split_actions(ticker)
         dividend = self.get_dividend_actions(ticker)
+        # dividend = pd.DataFrame()
         df = pd.concat([bonus, split, dividend])
-        print(df)
+        df.reset_index(inplace=True)
+        df.drop("index", axis=1, inplace=True)
+        addf = self.parse_adjustment_factor(df)
+        df = df.join(addf)
+        # print(df)
         return df
+
+    def parse_adjustment_factor(self, corpAct: pd.DataFrame):
+        # bonus
+        bonus_regex = r"Bonus issue (\d+):(\d+)"
+        bonus = corpAct["Purpose"].str.extract(bonus_regex)
+        bonus.columns = ["A", "B"]
+        bonus["A"] = pd.to_numeric(bonus["A"])
+        bonus["B"] = pd.to_numeric(bonus["B"])
+        bonus["C"] = bonus.eval("(A + B)/B")
+        bonus["action"] = "bonus"
+        bonus.drop(bonus.index[bonus["C"].isna()], inplace=True)
+
+        # split
+        split_regex = r"Stock  Split From Rs.(\d+)/- to Rs.(\d+)/-"
+        split = corpAct["Purpose"].str.extract(split_regex)
+        split.columns = ["A", "B"]
+        split["A"] = pd.to_numeric(split["A"])
+        split["B"] = pd.to_numeric(split["B"])
+        split["C"] = split.eval("A /B")
+        split["action"] = "split"
+        # split = split[~split["C"].isna()]
+        split.drop(split.index[split["C"].isna()], inplace=True)
+
+        # dividend
+        divi_regex = r"Dividend - Rs. - (\d+(?:.\d+)?)"
+        divi = corpAct["Purpose"].str.extract(divi_regex)
+        divi.columns = ["C"]
+        divi["action"] = "dividend"
+        divi["A"] = np.nan
+        divi["B"] = np.nan
+        divi["C"] = pd.to_numeric(divi["C"])
+        divi.drop(divi.index[divi["C"].isna()], inplace=True)
+
+        actions = pd.concat([bonus, split, divi])
+        m = corpAct.join(actions)
+        # m.to_csv("test.csv")
+        # print(m.columns)
+        return actions
 
     def create_all(self):
         Base.metadata.create_all(self.engine)
 
 
 def update():
+    print("Updating BSE corp actions..")
     downloader = BseCorpActDBManager()
     downloader.update()
 
@@ -272,8 +324,8 @@ def update():
 def test():
     dbmgr = BseCorpActDBManager()
     dbmgr.update()
-    df = dbmgr.get_corp_actions("TITAN")
-    df.to_csv("titan.csv")
+    df = dbmgr.get_corp_actions("INFY")
+    print(df)
 
 
 def main():

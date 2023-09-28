@@ -7,13 +7,14 @@ from datetime import date, datetime
 from pd_model import Symbol, Data, Mkt, Series, Security1, CorpAction
 import config as cfg
 import nameChangeModel as nameChange
-from bhavcopy_reader.BseCorpAction import parseCorpAction
+from BseCorpAction import BseCorpActDBManager
 
 
 class DataManager:
     def __init__(self, session: db.orm.Session):
         self.session = session
         self.nameChange = nameChange.NameChangeManager(session.get_bind())
+        self.bseCorpAct = BseCorpActDBManager()
 
     def setup_queries(self):
         query_get_symbol_info = ""
@@ -153,11 +154,9 @@ def main():
 
 
 def test_corp_action_parse():
-    session = db.orm.Session(cfg.SQL_CON)
-    dMgr = DataManager(session)
-    data = dMgr.get_corpAction_data("INFY")
-    d = parseCorpAction(data)
-    print(d)
+    cMgr = BseCorpActDBManager()
+    data = cMgr.get_corp_actions("INFY")
+    print(data)
 
 
 if __name__ == "__main__":

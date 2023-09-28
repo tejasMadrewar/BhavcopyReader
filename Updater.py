@@ -4,6 +4,7 @@ import PdddmmyyReader
 import pd_move_to_model
 import nameChangeModel
 import corpAction
+import BseCorpAction
 
 
 def main():
@@ -20,6 +21,8 @@ def main():
     nameChangeModel.update()
     # download Index data
     IndexDownloader.update()
+    # update bse corp action
+    BseCorpAction.update()
 
 
 if __name__ == "__main__":
