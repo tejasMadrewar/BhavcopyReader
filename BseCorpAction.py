@@ -109,6 +109,8 @@ class BseCorpActDownloader:
 
     def jsonurl2df(self, url: str):
         text = self.get_data(url, self.baseUrl)
+        if text == None:
+            return pd.DataFrame()
         j = json.loads(text)
         return pd.DataFrame(j)
 
@@ -168,7 +170,7 @@ class BseCorpActDBManager:
         self.dwnldr = BseCorpActDownloader(dwnFolder)
         self.engine = engine
         self.download_folder = dwnFolder
-        self.Session = db.orm.sessionmaker(bind=self.engine)
+        self.Session = db.orm.sessionmaker(bind=self.engine)  # type: ignore
         self.session: Session = self.Session()
         self.create_all()
 
@@ -210,13 +212,12 @@ class BseCorpActDBManager:
         # replace NaT and nan
         diff.replace(
             {
-                pd.NaT: None,
                 np.nan: None,
             },
             inplace=True,
         )
         # filter data by the ex_date
-        diff = diff[diff["Ex_date"] <= self.dwnldr.dTime]
+        diff = diff[diff["Ex_date"] < self.dwnldr.dTime]
         return diff
 
     def csv_to_table(self, csv_path: str, model):
@@ -224,7 +225,7 @@ class BseCorpActDBManager:
         diff = self.clean_corp_df(df, model)
         # print(diff)
         # diff.to_csv(f"diff_{model.__tablename__}.csv")
-        self.session.bulk_insert_mappings(model, diff.to_dict(orient="records"))
+        self.session.bulk_insert_mappings(model, diff.to_dict(orient="records"))  # type: ignore
         self.session.commit()
         print(f"Inserted {len(diff)} rows in {model.__tablename__} table")
 
@@ -239,26 +240,23 @@ class BseCorpActDBManager:
 
     def update(self):
         self.dwnldr.download_allCorpAction()
-        self.update_corp_split_table(f"{self.dwnldr.folder}\Stock__Split.csv")
-        self.update_corp_bonus_table(f"{self.dwnldr.folder}\Bonus_Issue.csv")
-        self.update_corp_divident_table(f"{self.dwnldr.folder}\Dividend.csv")
+        self.update_corp_split_table(f"{self.dwnldr.folder}\\Stock__Split.csv")
+        self.update_corp_bonus_table(f"{self.dwnldr.folder}\\Bonus_Issue.csv")
+        self.update_corp_divident_table(f"{self.dwnldr.folder}\\Dividend.csv")
+
+    def read_actions_from_db(self, model, ticker: str):
+        stmt = self.session.query(model).filter(model.short_name == ticker).statement
+        actions = pd.read_sql_query(stmt, self.session.get_bind())
+        return actions
 
     def get_bonus_actions(self, ticker: str):
-        stmt = self.session.query(Bonus).filter(Bonus.short_name == ticker).statement
-        bonus = pd.read_sql_query(stmt, self.session.get_bind())
-        return bonus
+        return self.read_actions_from_db(Bonus, ticker)
 
     def get_split_actions(self, ticker: str):
-        stmt = self.session.query(Split).filter(Split.short_name == ticker).statement
-        split = pd.read_sql_query(stmt, self.session.get_bind())
-        return split
+        return self.read_actions_from_db(Split, ticker)
 
     def get_dividend_actions(self, ticker: str):
-        stmt = (
-            self.session.query(Dividend).filter(Dividend.short_name == ticker).statement
-        )
-        dividend = pd.read_sql_query(stmt, self.session.get_bind())
-        return dividend
+        return self.read_actions_from_db(Dividend, ticker)
 
     def get_corp_actions(self, ticker: str):
         bonus = self.get_bonus_actions(ticker)
@@ -268,8 +266,8 @@ class BseCorpActDBManager:
         df = pd.concat([bonus, split, dividend])
         df.reset_index(inplace=True)
         df.drop("index", axis=1, inplace=True)
-        addf = self.parse_adjustment_factor(df)
-        df = df.join(addf)
+        ad_fact = self.parse_adjustment_factor(df)
+        df = df.join(ad_fact)
         # print(df)
         return df
 
@@ -306,9 +304,6 @@ class BseCorpActDBManager:
         divi.drop(divi.index[divi["C"].isna()], inplace=True)
 
         actions = pd.concat([bonus, split, divi])
-        m = corpAct.join(actions)
-        # m.to_csv("test.csv")
-        # print(m.columns)
         return actions
 
     def create_all(self):

@@ -31,7 +31,7 @@ def PRZip_download_for_day(day, folder_location):
             print("%s" % (format(e)) + " Or Check if Its a Holiday. " + str(i))
 
 
-def pool_handler(func, args, poolSize=4):
+def pool_handler(func, args, poolSize=5):
     p = Pool(poolSize)
     p.starmap(func, args)
 
