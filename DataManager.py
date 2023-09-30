@@ -29,9 +29,28 @@ class DataManager:
         ids = self.nameChange.get_ids_of_symbol(symbol_name)
         return db.or_(table.symbol_id == i for i in ids)
 
+    def adjust_equity_data(self, df: pd.DataFrame, ticker: str):
+        acts = self.bseCorpAct.get_corp_actions(ticker)
+        acts = acts[(acts["action"] == "bonus") | (acts["action"] == "split")]
+        # filename = f"{str(datetime.now()).replace(':', '_')}  {ticker}"
+        # df.to_csv(f"{filename}_before.csv")
+        for index, row in acts.iterrows():
+            print("hello", row.Ex_date, row.C)
+            if row.action == "split" or row.action == "bonus":
+                df.loc[df.index < row.Ex_date] = df[
+                    ["Open", "High", "Low", "Close"]
+                ].div(row.C)
+        # df.to_csv(f"{filename}_after.csv")
+        return df
+
     def get_equity_data(
         self, symbol: str, fromDate: date = None, toDate: date = None, adjusted=True
     ):
+        series_query = (
+            self.session.query(Series.id)
+            .filter(Series.series_name.in_(("EQ", "BE")))
+            .subquery()
+        )
         query = (
             self.session.query(
                 Data.date1.label("Date"),
@@ -43,7 +62,7 @@ class DataManager:
                 Data.close_price.label("Close"),
             )
             .join(Symbol)
-            .filter((Series.series_name == "EQ") | (Series.series_name == "BE"))
+            .filter(Data.series_id.in_(series_query))
             .filter(self.generate_symbol_id_filter(symbol.upper(), Data))
             .order_by(
                 # db.desc(Data.date1)
@@ -66,11 +85,14 @@ class DataManager:
 
         if filt != ():
             query = query.filter(*filt)
-        # print(query.statement)
+        # sql_stmt = str(query.statement.compile(compile_kwargs={"literal_binds": True}))
         df = self.query_to_df(query)
+        if adjusted:
+            self.adjust_equity_data(df, symbol)
+        # print(df)
         return df
 
-    def get_corpAction_data(self, symbol: str, adjusted=True):
+    def get_corpAction_data(self, symbol: str):
         query = (
             self.session.query(
                 Symbol.symbol_name.label("symbol"),
@@ -160,7 +182,7 @@ def test_corp_action_parse():
 
 
 if __name__ == "__main__":
-    # main()
+    main()
     # test_get_corp_action()
     # test_is_symbol_valid()
     # test_date_filter()
