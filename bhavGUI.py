@@ -1,4 +1,3 @@
-import typing
 from PyQt5.QtWidgets import (
     QComboBox,
     QMainWindow,
@@ -25,8 +24,9 @@ from matplotlib.backends.backend_qt5agg import FigureCanvas
 import matplotlib.pyplot as plt
 import matplotlib
 import pandas as pd
+import numpy as np
 
-import DataManager as dMgr
+from DataManager import DataManager
 import config
 
 
@@ -198,8 +198,8 @@ class customePushButton(QPushButton):
         self.setText("Add to list")
 
 
-class corpActionWidget(QTableView):
-    def __init__(self, dataMgr):
+class CorpActionWidget(QTableView):
+    def __init__(self, dataMgr: DataManager):
         super().__init__()
         self.dataMgr = dataMgr
         self.setWindowTitle("Corp Actions")
@@ -213,9 +213,20 @@ class corpActionWidget(QTableView):
         self.show()
 
     def setTicker(self, ticker: str):
-        if self.dataMgr.is_ticker_valid(ticker):
-            self.model = PandasModel(self.dataMgr.get_corpAction_data(ticker))
-            self.setModel(self.model)
+        df = self.dataMgr.get_corpAction_data(ticker)
+        l = [
+            "short_name",
+            "Ex_date",
+            "action",
+            "A",
+            "B",
+            "C",
+            "Purpose",
+        ]
+        df = df[l].replace({np.nan: "-"})
+        df.sort_values(by=["short_name", "Ex_date", "action"], inplace=True)
+        self.model = PandasModel(df)
+        self.setModel(self.model)
 
 
 class MainWindow(QMainWindow):
@@ -223,12 +234,12 @@ class MainWindow(QMainWindow):
         super().__init__()
         # datamgr
         self.session = db.orm.Session(config.SQL_CON)
-        self.dataMgr = dMgr.DataManager(self.session)
+        self.dataMgr = DataManager(self.session)
 
         self.setWindowTitle("Bhav Data viewer")
 
         self.tickerBox = tickerLineEdit(self.dataMgr)
-        self.corpActionTable = corpActionWidget(self.dataMgr)
+        self.corpActionTable = CorpActionWidget(self.dataMgr)
         self.periodFilter = timeFilterBox()
 
         self.plotBtn = customePushButton()

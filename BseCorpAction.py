@@ -259,6 +259,7 @@ class BseCorpActDBManager:
         return self.read_actions_from_db(Dividend, ticker)
 
     def get_corp_actions(self, ticker: str):
+        ticker = ticker.upper()
         bonus = self.get_bonus_actions(ticker)
         split = self.get_split_actions(ticker)
         dividend = self.get_dividend_actions(ticker)
