@@ -36,6 +36,8 @@ class DataManager:
     def get_equity_data(
         self, symbol: str, fromDate: date = None, toDate: date = None, adjusted=True
     ):
+        if not self.is_ticker_valid(symbol):
+            return pd.DataFrame()
         series_query = (
             self.session.query(Series.id)
             .filter(Series.series_name.in_(("EQ", "BE")))
@@ -81,6 +83,7 @@ class DataManager:
         )
         if adjusted:
             self.adjust_equity_data(df, symbol)
+            df["symbol"] = self.nameChange.get_latest_name(symbol)
         # print(df)
         return df
 

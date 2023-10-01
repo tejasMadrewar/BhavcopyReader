@@ -95,7 +95,7 @@ class tickerLineEdit(QLineEdit):
         self.dataMgr = dataMgr
         self.data = []
         self.setPlaceholderText("Enter ticker name...")
-        self.completer = QCompleter(self.data, self)
+        self.completer: QCompleter = QCompleter(self.data, self)
         self.completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
         self.setCompleter(self.completer)
@@ -193,27 +193,36 @@ class timeFilterBox(QTabWidget):
 
 
 class customePushButton(QPushButton):
-    def __init__(self):
+    def __init__(self, btnTxt: str):
         super().__init__()
-        self.setText("Add to list")
+        self.setText(btnTxt)
 
 
-class CorpActionWidget(QTableView):
-    def __init__(self, dataMgr: DataManager):
+class DFViewWidget(QTableView):
+    def __init__(self, title: str = "Window"):
         super().__init__()
-        self.dataMgr = dataMgr
-        self.setWindowTitle("Corp Actions")
+        self.setWindowTitle(title)
         self.resize(700, 500)
         self.horizontalHeader().setStretchLastSection(True)
         self.setAlternatingRowColors(True)
-        self.model = PandasModel(pd.DataFrame())
+        self.model: PandasModel = PandasModel(pd.DataFrame())
         self.setModel(self.model)
 
-    def showTable(self):
-        self.show()
+    def setData(self, df: pd.DataFrame):
+        self.model = PandasModel(df)
+        self.setModel(self.model)
 
-    def setTicker(self, ticker: str):
+
+class CorpActionWidget(DFViewWidget):
+    def __init__(self, dataMgr: DataManager, title: str = "WTitle"):
+        super().__init__(title)
+        self.dataMgr = dataMgr
+
+    def setCorpData(self, ticker: str):
         df = self.dataMgr.get_corpAction_data(ticker)
+        if df.empty:
+            self.setData(df)
+            return
         l = [
             "short_name",
             "Ex_date",
@@ -225,8 +234,7 @@ class CorpActionWidget(QTableView):
         ]
         df = df[l].replace({np.nan: "-"})
         df.sort_values(by=["short_name", "Ex_date", "action"], inplace=True)
-        self.model = PandasModel(df)
-        self.setModel(self.model)
+        self.setData(df)
 
 
 class MainWindow(QMainWindow):
@@ -240,14 +248,15 @@ class MainWindow(QMainWindow):
 
         self.tickerBox = tickerLineEdit(self.dataMgr)
         self.corpActionTable = CorpActionWidget(self.dataMgr)
+        self.OHLCTable = DFViewWidget("OHLC data")
         self.periodFilter = timeFilterBox()
 
-        self.plotBtn = customePushButton()
-        self.plotBtn.setText("Plot")
+        self.plotBtn = customePushButton("Plot")
         self.plotBtn.clicked.connect(self.update_chart)
-        self.showCorpActionBtn = customePushButton()
-        self.showCorpActionBtn.setText("show corpAction")
+        self.showCorpActionBtn = customePushButton("show corpAction")
         self.showCorpActionBtn.clicked.connect(self.show_corp_action)
+        self.showOHLCBtn = customePushButton("show OHLC")
+        self.showOHLCBtn.clicked.connect(self.show_OHLC)
 
         # canvas
         self.canvas = FigureCanvas(plt.Figure(figsize=(15, 6)))
@@ -264,6 +273,7 @@ class MainWindow(QMainWindow):
         self.menuBar1.addRow(self.periodFilter)
         self.menuBar1.addRow(self.plotBtn)
         self.menuBar1.addRow(self.showCorpActionBtn)
+        self.menuBar1.addRow(self.showOHLCBtn)
 
         centralWidget = QWidget(self)
         centralWidget.setLayout(self.generalLayout)
@@ -278,18 +288,26 @@ class MainWindow(QMainWindow):
 
     def update_chart(self):
         ticker = self.tickerBox.text()
-        dates = self.periodFilter.getTimeRange()
-        print(ticker, dates)
+        dateRange = self.periodFilter.getTimeRange()
+        print(ticker, dateRange)
         self.ax.clear()
         self.ax.set_title(ticker)
         self.dataMgr.plot_equity(
-            ticker, fromDate=min(dates), toDate=max(dates), ax=self.ax
+            ticker, fromDate=min(dateRange), toDate=max(dateRange), ax=self.ax
         )
         self.canvas.draw()
 
     def show_corp_action(self):
-        self.corpActionTable.setTicker(self.tickerBox.text())
+        self.corpActionTable.setCorpData(self.tickerBox.text())
         self.corpActionTable.show()
+
+    def show_OHLC(self):
+        dateRange = self.periodFilter.getTimeRange()
+        df = self.dataMgr.get_equity_data(
+            self.tickerBox.text(), fromDate=min(dateRange), toDate=max(dateRange)
+        )
+        self.OHLCTable.setData(df)
+        self.OHLCTable.show()
 
 
 if __name__ == "__main__":

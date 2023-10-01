@@ -8,6 +8,7 @@
 
 # Finished
 
+- view OHLC data
 - get latest ticker name
 - get corp action adjusted data
 - parse corp action data
