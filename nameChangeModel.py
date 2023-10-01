@@ -91,6 +91,28 @@ class NameChangeManager:
         data = list(data)
         return data
 
+    def get_latest_name(self, symbol: str):
+        ids = self.get_ids_of_symbol(symbol)
+        query = (
+            self.session.query(self.tbl)
+            .filter(self.tbl.new_symbol_id.in_(ids))
+            .order_by(db.desc(self.tbl.date1))
+            .limit(1)
+        )
+        df = pd.read_sql_query(query.statement, self.session.get_bind())
+        if len(df) != 0:
+            id = [int(df.iloc[0, 3])]
+            return self.sym_ids_to_sym_names(id)[0]
+        else:
+            return symbol
+
+    def sym_ids_to_sym_names(self, symbol_ids: list) -> list:
+        query = self.session.query(self.symbolTbl).filter(
+            self.symbolTbl.id.in_(symbol_ids)
+        )
+        df = pd.read_sql_query(query.statement, self.session.get_bind())
+        return df["symbol_name"].to_list()
+
     def get_id_of_symbol(self, symbol_name: str):
         query = self.session.query(self.symbolTbl.id.label("symbols")).filter(
             (self.symbolTbl.symbol_name == symbol_name)
@@ -106,10 +128,26 @@ class NameChangeManager:
 
 
 def test():
-    nameChange = NameChangeManager(cfg.SQL_CON)
-    nameChange.get_ids_of_symbol("INFY")
-    nameChange.get_ids_of_symbol("YAARII")
-    nameChange.get_ids_of_symbol("IBULISL")
+    symMgr = NameChangeManager(cfg.SQL_CON)
+    l = symMgr.get_ids_of_symbol("INFY")
+    print(symMgr.sym_ids_to_sym_names(l))
+    print(symMgr.get_latest_name("INFY"))
+
+    l = symMgr.get_ids_of_symbol("YAARII")
+    print(symMgr.sym_ids_to_sym_names(l))
+    print(symMgr.get_latest_name("YAARII"))
+
+    l = symMgr.get_ids_of_symbol("IBULISL")
+    print(symMgr.sym_ids_to_sym_names(l))
+    print(symMgr.get_latest_name("IBULISL"))
+
+    l = symMgr.get_ids_of_symbol("AGCNET")
+    print(symMgr.sym_ids_to_sym_names(l))
+    print(symMgr.get_latest_name("AGCNET"))
+
+    l = symMgr.get_ids_of_symbol("TCS")
+    print(symMgr.sym_ids_to_sym_names(l))
+    print(symMgr.get_latest_name("TCS"))
 
 
 def update():

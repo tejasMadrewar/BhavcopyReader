@@ -8,6 +8,7 @@
 
 # Finished
 
+- get latest ticker name
 - get corp action adjusted data
 - parse corp action data
 - save corp action data in db
