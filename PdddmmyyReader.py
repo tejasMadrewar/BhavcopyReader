@@ -1,23 +1,20 @@
-import datetime
-from datetime import timedelta
+from datetime import timedelta, datetime, date
 import calendar
 import zipfile
-import sqlite3 as db
 import os.path
 from pathlib import Path
-import timeit
 
 import pandas as pd
 from tqdm import tqdm
-import sqlalchemy as sa
+import sqlalchemy as db
 
-import config as cfg
+from config import DOWNLOAD_FOLDER, SQL_CON
 
 # zip files with errors
 
 BLACK_LIST = [
-    datetime.date(2018, 1, 2),  # 2018-01-02 same data as 2019-01-02
-    datetime.date(2023, 2, 20),  # same as 22-2-2023
+    date(2018, 1, 2),  # 2018-01-02 same data as 2019-01-02
+    date(2023, 2, 20),  # same as 22-2-2023
 ]
 
 
@@ -92,13 +89,13 @@ def days_to_df(days, folder):
 
 
 def get_data_for_last_n_days(n, folder):
-    d = datetime.datetime.now().date()
+    d = datetime.now().date()
     days = [d - timedelta(days=i) for i in range(0, n)]
     return days_to_df(days, folder)
 
 
 def get_data_for_year(year, folder):
-    start = datetime.date(year, 1, 1)
+    start = date(year, 1, 1)
     days = [
         start + timedelta(days=i) for i in range(0, 365 + calendar.isleap(start.year))
     ]
@@ -106,7 +103,7 @@ def get_data_for_year(year, folder):
 
 
 def df_to_db(df: pd.DataFrame, engine, table_name="raw_data"):
-    insp = sa.inspect(engine)
+    insp = db.inspect(engine)
     if insp.has_table(table_name):
         # remove duplicate data
         prev_dts = pd.read_sql_query(
@@ -149,16 +146,13 @@ def update_table(folder, engine, table_name="raw_data"):
 
 def update(n=30):
     if n == None:
-        update_table(cfg.DOWNLOAD_FOLDER, cfg.SQL_CON)
+        update_table(DOWNLOAD_FOLDER, SQL_CON)
     else:
-        df = get_data_for_last_n_days(n, cfg.DOWNLOAD_FOLDER)
-        df_to_db(df, engine=cfg.SQL_CON)
+        df = get_data_for_last_n_days(n, DOWNLOAD_FOLDER)
+        df_to_db(df, engine=SQL_CON)
 
 
 def main():
-    # print(timeit.timeit('get_equity_data("TCS",cfg.SQL_CON)',
-    # globals=globals(), number=10))
-    # df = get_equity_data("TCS", cfg.SQL_CON)
     update()
 
 
