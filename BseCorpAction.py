@@ -5,59 +5,13 @@ import time
 import requests
 import json
 import os
-from pprint import pprint
 from multiprocessing import Pool
 
 from config import SQL_CON, DOWNLOAD_FOLDER
+from pd_model import Base, Split, Bonus, Dividend
 
 import sqlalchemy as db
 from sqlalchemy.orm.session import Session
-from sqlalchemy.orm import declarative_base
-
-CORP_ENGINE = db.create_engine("sqlite:///corp_action.db")
-
-# bse corp action sqlalchamy model
-Base = declarative_base()
-
-
-class Symbol(Base):
-    __tablename__ = "symbol"
-    id = db.Column(
-        db.SmallInteger().with_variant(db.Integer, "sqlite"), primary_key=True
-    )
-    symbol_name = db.Column(db.String(10), nullable=False)
-    db.UniqueConstraint(symbol_name)
-
-    def __repr__(self) -> str:
-        return f"<Symbol({self.id}, {self.symbol_name})>"
-
-
-class Csv_format:
-    id = db.Column(db.Integer, primary_key=True)
-    scrip_code = db.Column(db.Integer())
-    short_name = db.Column(db.String(10))
-    Ex_date = db.Column(db.DateTime())
-    Purpose = db.Column(db.String(100))
-    RD_Date = db.Column(db.DateTime())
-    BCRD_FROM = db.Column(db.DateTime())
-    BCRD_TO = db.Column(db.DateTime())
-    ND_START_DATE = db.Column(db.DateTime())
-    ND_END_DATE = db.Column(db.DateTime())
-    payment_date = db.Column(db.DateTime())
-    exdate = db.Column(db.Integer())
-    long_name = db.Column(db.String(100))
-
-
-class Split(Base, Csv_format):
-    __tablename__ = "split"
-
-
-class Bonus(Base, Csv_format):
-    __tablename__ = "bonus"
-
-
-class Dividend(Base, Csv_format):
-    __tablename__ = "dividend"
 
 
 class BseCorpActDownloader:
@@ -166,13 +120,13 @@ class BseCorpActDownloader:
 
 
 class BseCorpActDBManager:
-    def __init__(self, engine=CORP_ENGINE, dwnFolder=DOWNLOAD_FOLDER) -> None:
+    def __init__(self, engine=SQL_CON, dwnFolder=DOWNLOAD_FOLDER) -> None:
         self.dwnldr = BseCorpActDownloader(dwnFolder)
         self.engine = engine
         self.download_folder = dwnFolder
         self.Session = db.orm.sessionmaker(bind=self.engine)  # type: ignore
         self.session: Session = self.Session()
-        self.create_all()
+        Base.metadata.create_all(self.engine)
 
     def get_new_rows(
         self,
@@ -306,9 +260,6 @@ class BseCorpActDBManager:
 
         actions = pd.concat([bonus, split, divi])
         return actions
-
-    def create_all(self):
-        Base.metadata.create_all(self.engine)
 
 
 def update():

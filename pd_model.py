@@ -110,6 +110,35 @@ class CorpAction(Base):
     # bc_strt_dt, bc_end_dt, ex_dt, nd_strt_dt, nd_end_dt, purpose)
 
 
+# bse corp action models
+class Csv_format:
+    id = db.Column(db.Integer, primary_key=True)
+    scrip_code = db.Column(db.Integer())
+    short_name = db.Column(db.String(20))
+    Ex_date = db.Column(db.DateTime())
+    Purpose = db.Column(db.String(100))
+    RD_Date = db.Column(db.DateTime())
+    BCRD_FROM = db.Column(db.DateTime())
+    BCRD_TO = db.Column(db.DateTime())
+    ND_START_DATE = db.Column(db.DateTime())
+    ND_END_DATE = db.Column(db.DateTime())
+    payment_date = db.Column(db.DateTime())
+    exdate = db.Column(db.Integer())
+    long_name = db.Column(db.String(100))
+
+
+class Split(Base, Csv_format):
+    __tablename__ = "split"
+
+
+class Bonus(Base, Csv_format):
+    __tablename__ = "bonus"
+
+
+class Dividend(Base, Csv_format):
+    __tablename__ = "dividend"
+
+
 data_idx = db.Index(
     "data_idx", Data.id, Data.date1, Data.mkt_id, Data.series_id, Data.symbol_id
 )
