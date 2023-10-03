@@ -6,10 +6,9 @@ import zipfile
 import os
 import datetime
 
-import pd_model as model
-import config as cfg
+from config import SQL_CON, DOWNLOAD_FOLDER
 from nameChangeModel import NameChangeManager
-from pd_model import Data, CorpAction
+from Model import Base, Symbol, Series, CorpAction
 
 from tqdm import tqdm
 
@@ -37,13 +36,13 @@ def df_to_model(df: pd.DataFrame, session):
     if df.empty:
         return
     tables = [
-        {"model": model.Symbol, "src_col": "symbol", "dst_col": "symbol_name"},
-        {"model": model.Series, "src_col": "series", "dst_col": "series_name"},
+        {"model": Symbol, "src_col": "symbol", "dst_col": "symbol_name"},
+        {"model": Series, "src_col": "series", "dst_col": "series_name"},
     ]
     df["series"] = df["series"].fillna("_")
     df["symbol"] = df["symbol"].fillna("_")
     # remove already present dates
-    query = session.query(model.CorpAction.date1).distinct().statement
+    query = session.query(CorpAction.date1).distinct().statement
     old_dates = pd.read_sql_query(query, con=session.get_bind())
     df = df[~df["date1"].isin(old_dates["date1"])]
     # update tables
@@ -72,7 +71,7 @@ def df_to_model(df: pd.DataFrame, session):
         df = df.rename(columns={src_col: dst_col})
         df = pd.merge(df, t1, on=dst_col, how="left")
     old_dates = pd.read_sql_query(
-        session.query(model.CorpAction.date1).distinct().statement,
+        session.query(CorpAction.date1).distinct().statement,
         con=session.get_bind(),
     )
     if not old_dates.empty:
@@ -95,7 +94,7 @@ def df_to_model(df: pd.DataFrame, session):
     ]
     print(f"Found {len(df.date1.unique())} new days")
     df = df.replace({np.nan: None})
-    session.bulk_insert_mappings(model.CorpAction, df.to_dict(orient="records"))
+    session.bulk_insert_mappings(CorpAction, df.to_dict(orient="records"))
     session.commit()
     # print(df)
 
@@ -173,9 +172,9 @@ def recreate_all_data(con, folder: str):
     Session = db.orm.sessionmaker(bind=con)
     session = Session()
     # create corp action table
-    model.Base.metadata.create_all(con)
+    Base.metadata.create_all(con)
     # delete corp action table
-    session.query(model.CorpAction).delete()
+    session.query(CorpAction).delete()
     session.commit()
     # generate dates
     today = datetime.datetime.today().date()
@@ -188,7 +187,7 @@ def recreate_all_data(con, folder: str):
 
 
 def get_last_updated_date(session):
-    query = session.query(db.func.max(model.CorpAction.date1))
+    query = session.query(db.func.max(CorpAction.date1))
     if query.all()[0][0] == None:
         return datetime.date(year=2009, month=1, day=1)
     return query.all()[0][0].date()
@@ -196,10 +195,10 @@ def get_last_updated_date(session):
 
 def update(n=None):
     print("Updating corp Actions")
-    Session = db.orm.sessionmaker(bind=cfg.SQL_CON)
+    Session = db.orm.sessionmaker(bind=SQL_CON)
     session = Session()
     # create corp action table
-    model.Base.metadata.create_all(cfg.SQL_CON)
+    Base.metadata.create_all(SQL_CON)
     start_date = get_last_updated_date(session)
     today = datetime.datetime.today().date()
     if n == None:
@@ -211,7 +210,7 @@ def update(n=None):
         today - datetime.timedelta(days=i)
         for i in range(int((today - start_date).days) + 2)
     ]
-    df = days_to_df(days, cfg.DOWNLOAD_FOLDER)
+    df = days_to_df(days, DOWNLOAD_FOLDER)
     df_to_model(df, session)
 
 
@@ -249,32 +248,8 @@ def get_corp_actions(symbol_name: str, session):
     return df
 
 
-def get_only_split_bonus_actions(df: pd.DataFrame):
-    df["purpose"] = df.purpose.str.strip()
-    filter = df.purpose.str.fullmatch("^BONUS \d+:\d+$")
-    # filter1 = df.purpose.str.fullmatch(".*BONUS$")
-
-    print(
-        df[
-            filter
-            # | filter1
-        ]
-    )
-
-
-def get_adjustmentfactor(symbol_name: str, session):
-    # get corp action of symbol
-    df = get_corp_actions(symbol_name, session)
-    df = get_only_split_bonus_actions(df)
-    # generate the symbol filter
-    # generate the adjustment factor
-
-
 def main():
-    Session = db.orm.sessionmaker(bind=cfg.SQL_CON)
-    session = Session()
-    # update()
-    get_adjustmentfactor("INFY", session)
+    update(30)
 
 
 if __name__ == "__main__":

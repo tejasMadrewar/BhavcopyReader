@@ -4,8 +4,8 @@ from sqlalchemy.sql import exists
 import mplfinance as mpf
 from datetime import date, datetime
 
-from pd_model import Symbol, Data, Mkt, Series, Security1, CorpAction
-import config as cfg
+from Model import Symbol, Data, Series
+from config import SQL_CON, DOWNLOAD_FOLDER
 import nameChangeModel as nameChange
 from BseCorpAction import BseCorpActDBManager
 
@@ -123,7 +123,7 @@ class DataManager:
 
 
 def test_get_corp_action():
-    session = db.orm.Session(cfg.SQL_CON)
+    session = db.orm.Session(SQL_CON)
     dMgr = DataManager(session)
     df = dMgr.get_corpAction_data("TCS")
     print(df)
@@ -131,7 +131,7 @@ def test_get_corp_action():
 
 
 def test_is_symbol_valid():
-    session = db.orm.Session(cfg.SQL_CON)
+    session = db.orm.Session(SQL_CON)
     dMgr = DataManager(session)
     tickers = ["asdf", "Tcs", "TCS", "fffff", "HDFC"]
     for t in tickers:
@@ -139,7 +139,7 @@ def test_is_symbol_valid():
 
 
 def test_date_filter():
-    session = db.orm.Session(cfg.SQL_CON)
+    session = db.orm.Session(SQL_CON)
     dMgr = DataManager(session)
     fromDate = date(2022, 1, 1)
     toDate = date(2023, 1, 10)
@@ -148,7 +148,7 @@ def test_date_filter():
 
 
 def main():
-    session = db.orm.Session(cfg.SQL_CON)
+    session = db.orm.Session(SQL_CON)
     dMgr = DataManager(session)
     # dMgr.plot_equity("HINDUNILVR")
     # dMgr.plot_equity("YAARII")

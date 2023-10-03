@@ -1,17 +1,17 @@
-import pd_model as model
+from Model import Base, Symbol, Security1, Series, Mkt, Data
 import sqlalchemy as db
 import pandas as pd
 import datetime
 
-import config as cfg
+from config import SQL_CON, DOWNLOAD_FOLDER
 
 
 def df_to_model(session, df):
     tables = [
-        {"model": model.Symbol, "src_col": "symbol", "dst_col": "symbol_name"},
-        {"model": model.Security1, "src_col": "security1", "dst_col": "security_name"},
-        {"model": model.Series, "src_col": "series", "dst_col": "series_name"},
-        {"model": model.Mkt, "src_col": "mkt", "dst_col": "mkt_name"},
+        {"model": Symbol, "src_col": "symbol", "dst_col": "symbol_name"},
+        {"model": Security1, "src_col": "security1", "dst_col": "security_name"},
+        {"model": Series, "src_col": "series", "dst_col": "series_name"},
+        {"model": Mkt, "src_col": "mkt", "dst_col": "mkt_name"},
     ]
     # replace NA values with "_"
     df["series"] = df["series"].fillna("_")
@@ -47,7 +47,7 @@ def df_to_model(session, df):
 
     print(f"New data {len(df.date1.unique())} days [{len(df)} rows]")
     old_dates = pd.read_sql_query(
-        session.query(model.Data.date1).distinct().statement, con=session.get_bind()
+        session.query(Data.date1).distinct().statement, con=session.get_bind()
     )
     if not old_dates.empty:
         # remove data with old dates and then insert
@@ -70,7 +70,7 @@ def df_to_model(session, df):
     # remove duplicate values
     df = df[~df.duplicated()]
     print(f"Found {len(df.date1.unique())} new days")
-    session.bulk_insert_mappings(model.Data, df.to_dict(orient="records"))
+    session.bulk_insert_mappings(Data, df.to_dict(orient="records"))
     session.commit()
 
 
@@ -104,7 +104,7 @@ def get_raw_data(
 
 
 def get_last_updated_date(session):
-    query = session.query(db.func.max(model.Data.date1))
+    query = session.query(db.func.max(Data.date1))
     if query.all()[0][0] == None:
         return datetime.date(year=2009, month=1, day=1)
     return query.all()[0][0].date()
@@ -115,10 +115,10 @@ def get_equity_data(session, symbol_name):
 
 
 def create():
-    Session = db.orm.sessionmaker(bind=cfg.SQL_CON)
+    Session = db.orm.sessionmaker(bind=SQL_CON)
     session = Session()
-    # model.Base.metadata.drop_all(cfg.SQL_CON)
-    model.Base.metadata.create_all(cfg.SQL_CON)
+    # model.Base.metadata.drop_all(SQL_CON)
+    Base.metadata.create_all(SQL_CON)
     session.commit()
     first = datetime.datetime.now().date()
     last = datetime.date(year=2009, month=1, day=1)
@@ -127,15 +127,15 @@ def create():
     while last < first:
         next = first - datetime.timedelta(days=step)
         print("from:", next, "to:", first)
-        df_to_model(session, get_raw_data(cfg.SQL_CON, first, max(next, last)))
+        df_to_model(session, get_raw_data(SQL_CON, first, max(next, last)))
         first = next
 
 
 def update(n=None):
     print("moving to pd_model")
-    Session = db.orm.sessionmaker(bind=cfg.SQL_CON)
+    Session = db.orm.sessionmaker(bind=SQL_CON)
     session = Session()
-    model.Base.metadata.create_all(cfg.SQL_CON)
+    Base.metadata.create_all(SQL_CON)
     session.commit()
     first = datetime.datetime.now().date()
     # first = datetime.date(year=2012, month=1, day=1)
@@ -149,7 +149,7 @@ def update(n=None):
     while last < first:
         next = first - datetime.timedelta(days=step)
         print("from:", next, "to:", first)
-        df_to_model(session, get_raw_data(cfg.SQL_CON, first, max(next, last)))
+        df_to_model(session, get_raw_data(SQL_CON, first, max(next, last)))
         first = next
 
 

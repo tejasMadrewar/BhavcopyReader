@@ -1,7 +1,6 @@
-from pd_model import Base, Data, NameChange
+from Model import Base, Data, NameChange
 import sqlalchemy as db
-import datetime
-import config as cfg
+from config import SQL_CON
 
 
 def get_last_updated_dates_of_model(session):
@@ -16,9 +15,9 @@ def get_last_updated_dates_of_model(session):
 
 
 def main():
-    Session = db.orm.sessionmaker(bind=cfg.SQL_CON)
+    Session = db.orm.sessionmaker(bind=SQL_CON)
     session = Session()
-    Base.metadata.create_all(cfg.SQL_CON)
+    Base.metadata.create_all(SQL_CON)
     get_last_updated_dates_of_model(session)
 
 

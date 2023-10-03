@@ -1,8 +1,8 @@
 import sqlalchemy as db
 import pandas as pd
 
-import config as cfg
-from pd_model import Base, Symbol, NameChange
+from config import SQL_CON, DOWNLOAD_FOLDER
+from Model import Base, Symbol, NameChange
 
 
 class NameChangeManager:
@@ -29,7 +29,7 @@ class NameChangeManager:
         return df
 
     def clean_data(self, df: pd.DataFrame):
-        sym = pd.read_sql_table(Symbol.__tablename__, cfg.SQL_CON)
+        sym = pd.read_sql_table(Symbol.__tablename__, SQL_CON)
         # left join 1
         df = df.merge(
             sym, how="left", left_on="old_symbol", right_on="symbol_name"
@@ -124,7 +124,7 @@ class NameChangeManager:
 
 
 def test():
-    symMgr = NameChangeManager(cfg.SQL_CON)
+    symMgr = NameChangeManager(SQL_CON)
     l = symMgr.get_ids_of_symbol("INFY")
     print(symMgr.sym_ids_to_sym_names(l))
     print(symMgr.get_latest_name("INFY"))
@@ -148,7 +148,7 @@ def test():
 
 def update():
     print("Updating nameChangeModel")
-    nameChange = NameChangeManager(cfg.SQL_CON)
+    nameChange = NameChangeManager(SQL_CON)
     nameChange.update()
 
 

@@ -8,7 +8,7 @@ import os
 from multiprocessing import Pool
 
 from config import SQL_CON, DOWNLOAD_FOLDER
-from pd_model import Base, Split, Bonus, Dividend
+from Model import Base, Split, Bonus, Dividend
 
 import sqlalchemy as db
 from sqlalchemy.orm.session import Session
