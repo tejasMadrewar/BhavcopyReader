@@ -1,7 +1,5 @@
-import datetime
 import sqlalchemy as db
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
 
 Base = declarative_base()
 
@@ -14,20 +12,6 @@ class Symbol(Base):
     )
     symbol_name = db.Column(db.String(10), nullable=False)
     db.UniqueConstraint(symbol_name)
-
-    @staticmethod
-    def get_or_create(session, sym_name):
-        try:  # check if obj present
-            return session.query(Symbol).filter_by(symbol_name=sym_name).one()
-        except:
-            try:  # new Symbol
-                a = Symbol(symbol_name=sym_name)
-                session.add(a)
-                session.commit()
-                return a
-            except Exception as e:
-                session.rollback()
-                print(e)
 
     def __repr__(self) -> str:
         return f"<Symbol({self.id}, {self.symbol_name})>"
@@ -42,20 +26,6 @@ class Security1(Base):
     security_name = db.Column(db.String(100))
     db.UniqueConstraint(security_name)
 
-    @staticmethod
-    def get_or_create(session, sec_name):
-        try:  # check if obj present
-            return session.query(Symbol).filter_by(security_name=sec_name).one()
-        except:
-            try:  # new Symbol
-                a = Symbol(security_name=sec_name)
-                session.add(a)
-                session.commit()
-                return a
-            except Exception as e:
-                session.rollback()
-                print(e)
-
     def __repr__(self) -> str:
         return f"<Security1({self.id}, {self.security_name})>"
 
@@ -69,20 +39,6 @@ class Mkt(Base):
     mkt_name = db.Column(db.String(4), nullable=False)
     db.UniqueConstraint(mkt_name)
 
-    @staticmethod
-    def get_or_create(session, mkt):
-        try:  # check if obj present
-            return session.query(Mkt).filter_by(mkt_name=mkt).one()
-        except:
-            try:  # new Symbol
-                a = Mkt(mkt_name=mkt)
-                session.add(a)
-                session.commit()
-                return a
-            except Exception as e:
-                session.rollback()
-                print(e)
-
     def __repr__(self) -> str:
         return f"<Mkt({self.id}, {self.mkt_name})>"
 
@@ -95,20 +51,6 @@ class Series(Base):
     )
     series_name = db.Column(db.String(4), nullable=False)
     db.UniqueConstraint(series_name)
-
-    @staticmethod
-    def get_or_create(session, series):
-        try:  # check if obj present
-            return session.query(Series).filter_by(series_name=series).one()
-        except:
-            try:  # new Symbol
-                a = Series(series_name=series)
-                session.add(a)
-                session.commit()
-                return a
-            except Exception as e:
-                session.rollback()
-                print(e)
 
     def __repr__(self) -> str:
         return f"<Series({self.id}, {self.series_name})>"
@@ -129,54 +71,6 @@ class Data(Base):
     low_price = db.Column(db.REAL)
     close_price = db.Column(db.REAL, nullable=False)
     db.UniqueConstraint(date1, mkt_id, series_id, symbol_id, security1_id)
-
-    def get_or_create(
-        session,
-        dt1,
-        mk_id: int,
-        ser_id: int,
-        sym_id: int,
-        sec_id: id,
-        op: float,
-        hi: float,
-        lo: float,
-        cl: float,
-    ):
-        print(dt1, mk_id, ser_id, sym_id, op, hi, lo, cl)
-        try:  # check if obj present
-            # return session.query(Data).filter(
-            #      Data.date1 == dt1 and Data.mkt_id == mk_id and
-            #      Data.series_id == ser_id and Data.symbol_id == sym_id
-            #     ).execute().one()
-            return (
-                session.query(Data)
-                .filter_by(date1=dt1)
-                .filter_by(
-                    mkt_id=mk_id,
-                    series_id=ser_id,
-                    symbol_id=sym_id,
-                    security1_id=sec_id,
-                )
-                .one()
-            )
-        except:
-            try:  # new Data
-                a = Data(
-                    date1=dt1,
-                    mkt_id=mk_id,
-                    series_id=ser_id,
-                    symbol_id=sym_id,
-                    open_price=op,
-                    high_price=hi,
-                    low_price=lo,
-                    close_price=cl,
-                )
-                session.add(a)
-                session.commit()
-                return a
-            except Exception as e:
-                session.rollback()
-                print(e)
 
     def __repr__(self) -> str:
         return f"<data({self.id} {self.date1}, {self.mkt_id}, \
@@ -253,5 +147,4 @@ def main():
 
 
 if __name__ == "__main__":
-    # main()
-    pass
+    main()

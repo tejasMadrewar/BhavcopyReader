@@ -2,15 +2,13 @@ import sqlalchemy as db
 import pandas as pd
 
 import config as cfg
-import pd_model as model
+from pd_model import Base, Symbol, NameChange
 
 
 class NameChangeManager:
     def __init__(self, engine):
         Session = db.orm.sessionmaker(bind=engine)
         self.session = Session()
-        self.tbl = model.NameChange
-        self.symbolTbl = model.Symbol
 
     def download_data(self):
         url = "https://www1.nseindia.com/content/equities/symbolchange.csv"
@@ -31,7 +29,7 @@ class NameChangeManager:
         return df
 
     def clean_data(self, df: pd.DataFrame):
-        sym = pd.read_sql_table(model.Symbol.__tablename__, cfg.SQL_CON)
+        sym = pd.read_sql_table(Symbol.__tablename__, cfg.SQL_CON)
         # left join 1
         df = df.merge(
             sym, how="left", left_on="old_symbol", right_on="symbol_name"
@@ -48,11 +46,11 @@ class NameChangeManager:
 
     def save_to_database(self, df: pd.DataFrame, session):
         # remove old dates
-        model.Base.metadata.create_all(session.bind)
+        Base.metadata.create_all(session.bind)
         # delete all previous data
-        session.query(model.NameChange).delete()
+        session.query(NameChange).delete()
         session.commit()
-        session.bulk_insert_mappings(model.NameChange, df.to_dict(orient="records"))
+        session.bulk_insert_mappings(NameChange, df.to_dict(orient="records"))
         session.commit()
         print("Updated name_change table")
 
@@ -62,14 +60,14 @@ class NameChangeManager:
         self.save_to_database(df, self.session)
 
     def gen_query_next(self, symbol_id: str):
-        query = self.session.query(self.tbl.old_symbol_id.label("symbols")).filter(
-            (self.tbl.new_symbol_id == symbol_id)
+        query = self.session.query(NameChange.old_symbol_id.label("symbols")).filter(
+            (NameChange.new_symbol_id == symbol_id)
         )
         return query
 
     def gen_query_prev(self, symbol_id: str):
-        query = self.session.query(self.tbl.new_symbol_id.label("symbols")).filter(
-            (self.tbl.old_symbol_id == symbol_id)
+        query = self.session.query(NameChange.new_symbol_id.label("symbols")).filter(
+            (NameChange.old_symbol_id == symbol_id)
         )
         return query
 
@@ -94,9 +92,9 @@ class NameChangeManager:
     def get_latest_name(self, symbol: str):
         ids = self.get_ids_of_symbol(symbol)
         query = (
-            self.session.query(self.tbl)
-            .filter(self.tbl.new_symbol_id.in_(ids))
-            .order_by(db.desc(self.tbl.date1))
+            self.session.query(NameChange)
+            .filter(NameChange.new_symbol_id.in_(ids))
+            .order_by(db.desc(NameChange.date1))
             .limit(1)
         )
         df = pd.read_sql_query(query.statement, self.session.get_bind())
@@ -107,15 +105,13 @@ class NameChangeManager:
             return symbol
 
     def sym_ids_to_sym_names(self, symbol_ids: list) -> list:
-        query = self.session.query(self.symbolTbl).filter(
-            self.symbolTbl.id.in_(symbol_ids)
-        )
+        query = self.session.query(Symbol).filter(Symbol.id.in_(symbol_ids))
         df = pd.read_sql_query(query.statement, self.session.get_bind())
         return df["symbol_name"].to_list()
 
     def get_id_of_symbol(self, symbol_name: str):
-        query = self.session.query(self.symbolTbl.id.label("symbols")).filter(
-            (self.symbolTbl.symbol_name == symbol_name)
+        query = self.session.query(Symbol.id.label("symbols")).filter(
+            (Symbol.symbol_name == symbol_name)
         )
         result = query.all()
         if result == []:
