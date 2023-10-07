@@ -20,6 +20,7 @@ from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QAbstractTableModel, QModelIndex
 
 import sqlalchemy as db
+from sqlalchemy import orm
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 import matplotlib.pyplot as plt
 import matplotlib
@@ -241,6 +242,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         # datamgr
+        self.Session = db.orm.sessionmaker(bind=config.SQL_CON)
         self.session = db.orm.Session(config.SQL_CON)
         self.dataMgr = DataManager(self.session)
 
@@ -310,8 +312,12 @@ class MainWindow(QMainWindow):
         self.OHLCTable.show()
 
 
-if __name__ == "__main__":
+def run():
     app = QApplication([])
     w = MainWindow()
     w.show()
     app.exec()
+
+
+if __name__ == "__main__":
+    run()

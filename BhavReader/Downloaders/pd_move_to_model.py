@@ -1,4 +1,4 @@
-from Model import Base, Symbol, Security1, Series, Mkt, Data
+from Model.Model import Base, Symbol, Security1, Series, Mkt, Data
 import sqlalchemy as db
 import pandas as pd
 import datetime

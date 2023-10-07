@@ -6,14 +6,17 @@ from datetime import date, datetime
 
 from Model import Symbol, Data, Series
 from config import SQL_CON, DOWNLOAD_FOLDER
-import nameChangeModel as nameChange
-from BseCorpAction import BseCorpActDBManager
+
+# import nameChangeModel as nameChange
+# from BseCorpAction import BseCorpActDBManager
+from Downloaders import nameChangeModel
+from Downloaders.BseCorpAction import BseCorpActDBManager
 
 
 class DataManager:
     def __init__(self, session: db.orm.Session):
         self.session = session
-        self.nameChange = nameChange.NameChangeManager(session.get_bind())
+        self.nameChange = nameChangeModel.NameChangeManager(session.get_bind())
         self.bseCorpAct = BseCorpActDBManager()
 
     def generate_symbol_id_filter(self, symbol_name: str, table):

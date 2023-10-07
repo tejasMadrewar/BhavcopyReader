@@ -1,10 +1,4 @@
-import PRZipDownloader
-import IndexDownloader
-import PdddmmyyReader
-import pd_move_to_model
-import nameChangeModel
-import corpAction
-import BseCorpAction
+from Downloaders import PRZipDownloader, IndexDownloader, PdddmmyyReader,pd_move_to_model,nameChangeModel,corpAction,BseCorpAction
 
 
 def main():
