@@ -27,7 +27,7 @@ import matplotlib
 import pandas as pd
 import numpy as np
 
-from DataManager import DataManager
+from datamanager import DataManager
 import config
 
 

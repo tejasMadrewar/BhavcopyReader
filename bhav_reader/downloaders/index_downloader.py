@@ -6,7 +6,7 @@ from multiprocessing import Pool
 
 import config as cfg
 
-indexData = {
+INDEX_DATA = {
     "symbolChange": "https://archives.nseindia.com/content/equities/symbolchange.csv",
     "50": "https://archives.nseindia.com/content/indices/ind_nifty50list.csv",
     "n50": "https://www.niftyindices.com/IndexConstituent/ind_niftynext50list.csv",
@@ -66,7 +66,7 @@ indexData = {
     "200qua30": "https://www.niftyindices.com/IndexConstituent/ind_nifty200Quality30_list.csv",
 }
 
-headers = {
+HEADERS = {
     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, "
     "like Gecko) "
     "Chrome/80.0.3987.149 Safari/537.36",
@@ -74,7 +74,7 @@ headers = {
     "accept-encoding": "gzip, deflate, br",
 }
 
-timeout = 30
+TIMEOUT = 30
 
 
 def pool_handler(func, args, poolSize=3):
@@ -84,16 +84,16 @@ def pool_handler(func, args, poolSize=3):
 
 def get_data(url):
     session = requests.Session()
-    request = session.get(url, headers=headers, timeout=timeout)
+    request = session.get(url, headers=HEADERS, timeout=TIMEOUT)
     cookies = dict(request.cookies)
-    response = session.get(url, headers=headers, timeout=timeout, cookies=cookies)
+    response = session.get(url, headers=HEADERS, timeout=TIMEOUT, cookies=cookies)
     return response.text
 
 
 def downloadIndex(indexName, downloadFolder):
     print(f"Downloading index data of '{indexName}'")
-    if indexName in indexData:
-        url = indexData[indexName]
+    if indexName in INDEX_DATA:
+        url = INDEX_DATA[indexName]
         filename = url.split("/")[-1]
         os.makedirs(downloadFolder, exist_ok=True)
         if os.path.isfile(os.path.join(downloadFolder, filename)):
@@ -120,7 +120,7 @@ def downloadAll(downloadFolder):
     )
     # for i in indexData:
     # downloadIndex(i, folder)
-    args = [(i, folder) for i in indexData.keys()]
+    args = [(i, folder) for i in INDEX_DATA.keys()]
     pool_handler(downloadIndex, args)
 
 

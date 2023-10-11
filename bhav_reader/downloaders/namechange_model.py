@@ -2,7 +2,7 @@ import sqlalchemy as db
 import pandas as pd
 
 from config import SQL_CON, DOWNLOAD_FOLDER
-from Model import Base, Symbol, NameChange
+from model import Base, Symbol, NameChange
 
 
 class NameChangeManager:
@@ -25,7 +25,7 @@ class NameChangeManager:
         )
         df = df.sort_values("date1")
         df = df[["date1", "security", "old_symbol", "new_symbol"]]
-        df.to_csv("symbolchange.csv", index=False)
+        # df.to_csv("symbolchange.csv", index=False)
         return df
 
     def clean_data(self, df: pd.DataFrame):

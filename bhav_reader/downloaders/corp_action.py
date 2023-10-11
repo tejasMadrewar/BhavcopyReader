@@ -7,8 +7,8 @@ import os
 import datetime
 
 from config import SQL_CON, DOWNLOAD_FOLDER
-from .nameChangeModel import NameChangeManager
-from Model import Base, Symbol, Series, CorpAction
+from .namechange_model import NameChangeManager
+from model import Base, Symbol, Series, CorpAction
 
 from tqdm import tqdm
 
