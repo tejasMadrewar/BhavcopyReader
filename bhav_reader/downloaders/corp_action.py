@@ -6,9 +6,8 @@ import zipfile
 import os
 import datetime
 
-from config import SQL_CON, DOWNLOAD_FOLDER
 from .namechange_model import NameChangeManager
-from model import Base, Symbol, Series, CorpAction
+from bhav_reader.model import Base, Symbol, Series, CorpAction
 
 from tqdm import tqdm
 
@@ -193,24 +192,24 @@ def get_last_updated_date(session):
     return query.all()[0][0].date()
 
 
-def update(n=None):
+def update(days, engine: db.engine, folder: str):
     print("Updating corp Actions")
-    Session = db.orm.sessionmaker(bind=SQL_CON)
+    Session = db.orm.sessionmaker(bind=engine)
     session = Session()
     # create corp action table
-    Base.metadata.create_all(SQL_CON)
+    Base.metadata.create_all(engine)
     start_date = get_last_updated_date(session)
     today = datetime.datetime.today().date()
-    if n == None:
+    if days == None:
         start_date = get_last_updated_date(session)
     else:
-        start_date = today - datetime.timedelta(days=n)
+        start_date = today - datetime.timedelta(days=days)
     # generate dates
-    days = [
+    dates = [
         today - datetime.timedelta(days=i)
         for i in range(int((today - start_date).days) + 2)
     ]
-    df = days_to_df(days, DOWNLOAD_FOLDER)
+    df = days_to_df(dates, folder)
     df_to_model(df, session)
 
 

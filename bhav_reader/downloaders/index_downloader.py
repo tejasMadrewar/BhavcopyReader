@@ -124,8 +124,8 @@ def downloadAll(downloadFolder):
     pool_handler(downloadIndex, args)
 
 
-def update():
-    downloadAll(cfg.DOWNLOAD_FOLDER)
+def update(download_folder):
+    downloadAll(download_folder)
 
 
 if __name__ == "__main__":

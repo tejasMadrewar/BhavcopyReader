@@ -1,4 +1,4 @@
-from downloaders import (
+from bhav_reader.downloaders import (
     przip_downloader,
     index_downloader,
     pdddmmyy_reader,
@@ -8,24 +8,25 @@ from downloaders import (
     bse_corpaction,
 )
 
+from config import DEFAULT_ENGINE, DOWNLOAD_FOLDER
 
-def main():
+
+def update_all(days: int, engine, download_folder: str):
     # download PR files
-    n = 60
-    przip_downloader.update(n)
-    przip_downloader.update(n)
+    przip_downloader.update(days, download_folder)
+    przip_downloader.update(days, download_folder)
     # update pd file data
-    pdddmmyy_reader.update(n)
-    pd_move_to_model.update(n)
+    pdddmmyy_reader.update(days, engine, download_folder)
+    pd_move_to_model.update(days)
     # update corp actions
-    corp_action.update(n)
+    corp_action.update(days, engine, download_folder)
     # update name change
-    namechange_model.update()
+    namechange_model.update(engine)
     # download Index data
-    index_downloader.update()
+    index_downloader.update(download_folder)
     # update bse corp action
-    bse_corpaction.update()
+    bse_corpaction.update(engine, download_folder)
 
 
 if __name__ == "__main__":
-    main()
+    update_all(30, DEFAULT_ENGINE, DOWNLOAD_FOLDER)

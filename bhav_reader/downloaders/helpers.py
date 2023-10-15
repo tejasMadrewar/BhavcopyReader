@@ -1,6 +1,6 @@
 from Model import Base, Data, NameChange
 import sqlalchemy as db
-from config import SQL_CON
+from config import DEFAULT_ENGINE
 
 
 def get_last_updated_dates_of_model(session):
@@ -15,9 +15,9 @@ def get_last_updated_dates_of_model(session):
 
 
 def main():
-    Session = db.orm.sessionmaker(bind=SQL_CON)
+    Session = db.orm.sessionmaker(bind=DEFAULT_ENGINE)
     session = Session()
-    Base.metadata.create_all(SQL_CON)
+    Base.metadata.create_all(DEFAULT_ENGINE)
     get_last_updated_dates_of_model(session)
 
 

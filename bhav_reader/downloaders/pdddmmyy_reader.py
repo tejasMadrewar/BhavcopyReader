@@ -8,7 +8,6 @@ import pandas as pd
 from tqdm import tqdm
 import sqlalchemy as db
 
-from config import DOWNLOAD_FOLDER, SQL_CON
 
 # zip files with errors
 
@@ -61,7 +60,7 @@ def zipfile_to_pd_df(date, zipfile_obj):
     return df
 
 
-def date_to_zipfile(date, folder):
+def date_to_zipfile(date, folder: str):
     PRZipFileName = date.strftime("PR%d%m%y.zip")
     zipFilePath = os.path.join(folder, PRZipFileName)
     if not Path(zipFilePath).is_file():
@@ -70,7 +69,7 @@ def date_to_zipfile(date, folder):
     return z
 
 
-def day_to_df(day_date, folder):
+def day_to_df(day_date, folder: str):
     z = date_to_zipfile(day_date, folder)
     if z == None or day_date in BLACK_LIST:
         return pd.DataFrame()
@@ -79,7 +78,7 @@ def day_to_df(day_date, folder):
     return df
 
 
-def days_to_df(days, folder):
+def days_to_df(days: list, folder: str):
     df = pd.concat([day_to_df(i, folder) for i in tqdm(days)], ignore_index=True)
     # make columns as categories
     df = df.astype({"security1": "category"})
@@ -88,18 +87,18 @@ def days_to_df(days, folder):
     return df
 
 
-def get_data_for_last_n_days(n, folder):
+def get_data_for_last_n_days(days: int, folder: str):
     d = datetime.now().date()
-    days = [d - timedelta(days=i) for i in range(0, n)]
-    return days_to_df(days, folder)
+    dates = [d - timedelta(days=i) for i in range(0, days)]
+    return days_to_df(dates, folder)
 
 
-def get_data_for_year(year, folder):
+def get_data_for_year(year, folder: str):
     start = date(year, 1, 1)
-    days = [
+    dates = [
         start + timedelta(days=i) for i in range(0, 365 + calendar.isleap(start.year))
     ]
-    return days_to_df(days, folder)
+    return days_to_df(dates, folder)
 
 
 def df_to_db(df: pd.DataFrame, engine, table_name="raw_data"):
@@ -144,17 +143,9 @@ def update_table(folder, engine, table_name="raw_data"):
     df_to_db(df, engine)
 
 
-def update(n=30):
-    if n == None:
-        update_table(DOWNLOAD_FOLDER, SQL_CON)
+def update(days: int, engine: db.engine, folder: str):
+    if days == None:
+        update_table(folder, engine)
     else:
-        df = get_data_for_last_n_days(n, DOWNLOAD_FOLDER)
-        df_to_db(df, engine=SQL_CON)
-
-
-def main():
-    update()
-
-
-if __name__ == "__main__":
-    main()
+        df = get_data_for_last_n_days(days, folder)
+        df_to_db(df, engine=engine)

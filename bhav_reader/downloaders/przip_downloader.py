@@ -3,12 +3,10 @@ import os.path
 import requests
 from multiprocessing import Pool
 
-import config as cfg
 
-
-def PRZip_download_for_day(day, folder_location):
+def PRZip_download_for_day(day, download_folder):
     PRZip_filename = day.strftime("PR%d%m%y.zip")
-    file_path = os.path.join(folder_location, PRZip_filename)
+    file_path = os.path.join(download_folder, PRZip_filename)
     if os.path.isfile(file_path):
         print(f"\t{PRZip_filename} already exists.")
         return
@@ -36,7 +34,7 @@ def pool_handler(func, args, poolSize=5):
     p.starmap(func, args)
 
 
-def PRZip_download_for_days(days, folder_location):
+def PRZip_download_for_days(days: int, folder_location: str):
     print(f"Downloading PR zip files for {len(days)} days..")
     # for day in days:
     # PRZip_download_for_day(day, folder_location)
@@ -45,19 +43,11 @@ def PRZip_download_for_days(days, folder_location):
     print(f"Downloading Finished.")
 
 
-def PRZip_download_last_n_days(n, folder_location):
+def PRZip_download_last_n_days(days: int, folder: str):
     today = datetime.datetime.today().date()
-    days = [today - datetime.timedelta(days=i) for i in range(n + 1)]
-    PRZip_download_for_days(days, folder_location)
+    dates = [today - datetime.timedelta(days=i) for i in range(days + 1)]
+    PRZip_download_for_days(dates, folder)
 
 
-def update(n=30):
-    PRZip_download_last_n_days(n, cfg.DOWNLOAD_FOLDER)
-
-
-def main():
-    update()
-
-
-if __name__ == "__main__":
-    main()
+def update(days: int, download_folder: str):
+    PRZip_download_last_n_days(days, download_folder)

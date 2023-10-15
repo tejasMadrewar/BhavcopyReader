@@ -1,9 +1,9 @@
-from model.model import Base, Symbol, Security1, Series, Mkt, Data
+from bhav_reader.model import Base, Symbol, Security1, Series, Mkt, Data
 import sqlalchemy as db
 import pandas as pd
 import datetime
 
-from config import SQL_CON, DOWNLOAD_FOLDER
+from config import DEFAULT_ENGINE, DOWNLOAD_FOLDER
 
 
 def df_to_model(session, df):
@@ -115,10 +115,10 @@ def get_equity_data(session, symbol_name):
 
 
 def create():
-    Session = db.orm.sessionmaker(bind=SQL_CON)
+    Session = db.orm.sessionmaker(bind=DEFAULT_ENGINE)
     session = Session()
     # model.Base.metadata.drop_all(SQL_CON)
-    Base.metadata.create_all(SQL_CON)
+    Base.metadata.create_all(DEFAULT_ENGINE)
     session.commit()
     first = datetime.datetime.now().date()
     last = datetime.date(year=2009, month=1, day=1)
@@ -127,15 +127,15 @@ def create():
     while last < first:
         next = first - datetime.timedelta(days=step)
         print("from:", next, "to:", first)
-        df_to_model(session, get_raw_data(SQL_CON, first, max(next, last)))
+        df_to_model(session, get_raw_data(DEFAULT_ENGINE, first, max(next, last)))
         first = next
 
 
 def update(n=None):
     print("moving to pd_model")
-    Session = db.orm.sessionmaker(bind=SQL_CON)
+    Session = db.orm.sessionmaker(bind=DEFAULT_ENGINE)
     session = Session()
-    Base.metadata.create_all(SQL_CON)
+    Base.metadata.create_all(DEFAULT_ENGINE)
     session.commit()
     first = datetime.datetime.now().date()
     # first = datetime.date(year=2012, month=1, day=1)
@@ -149,7 +149,7 @@ def update(n=None):
     while last < first:
         next = first - datetime.timedelta(days=step)
         print("from:", next, "to:", first)
-        df_to_model(session, get_raw_data(SQL_CON, first, max(next, last)))
+        df_to_model(session, get_raw_data(DEFAULT_ENGINE, first, max(next, last)))
         first = next
 
 
