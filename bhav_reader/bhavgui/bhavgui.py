@@ -20,15 +20,12 @@ from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QAbstractTableModel, QModelIndex
 
 import sqlalchemy as db
-from sqlalchemy import orm
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 import matplotlib.pyplot as plt
-import matplotlib
 import pandas as pd
 import numpy as np
 
-from datamanager import DataManager
-import config
+from bhav_reader.datamanager import DataManager
 
 
 from datetime import datetime, timedelta
@@ -239,12 +236,12 @@ class CorpActionWidget(DFViewWidget):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, engine: db.engine, download_folder: str):
         super().__init__()
         # datamgr
-        self.Session = db.orm.sessionmaker(bind=config.SQL_CON)
-        self.session = db.orm.Session(config.SQL_CON)
-        self.dataMgr = DataManager(self.session)
+        self.Session = db.orm.sessionmaker(bind=engine)
+        self.session = db.orm.Session(engine)
+        self.dataMgr = DataManager(self.session, download_folder)
 
         self.setWindowTitle("Bhav Data viewer")
 
@@ -312,12 +309,8 @@ class MainWindow(QMainWindow):
         self.OHLCTable.show()
 
 
-def run():
+def run(engine: db.engine, download_folder: str):
     app = QApplication([])
-    w = MainWindow()
+    w = MainWindow(engine, download_folder)
     w.show()
     app.exec()
-
-
-if __name__ == "__main__":
-    run()

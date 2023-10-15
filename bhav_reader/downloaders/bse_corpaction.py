@@ -7,8 +7,7 @@ import json
 import os
 from multiprocessing import Pool
 
-from config import SQL_CON, DOWNLOAD_FOLDER
-from model import Base, Split, Bonus, Dividend
+from bhav_reader.model import Base, Split, Bonus, Dividend
 
 import sqlalchemy as db
 from sqlalchemy.orm.session import Session
@@ -120,10 +119,10 @@ class BseCorpActDownloader:
 
 
 class BseCorpActDBManager:
-    def __init__(self, engine=SQL_CON, dwnFolder=DOWNLOAD_FOLDER) -> None:
-        self.dwnldr = BseCorpActDownloader(dwnFolder)
+    def __init__(self, engine, download_folder) -> None:
+        self.dwnldr = BseCorpActDownloader(download_folder)
         self.engine = engine
-        self.download_folder = dwnFolder
+        self.download_folder = download_folder
         self.Session = db.orm.sessionmaker(bind=self.engine)  # type: ignore
         self.session: Session = self.Session()
         Base.metadata.create_all(self.engine)
@@ -262,23 +261,7 @@ class BseCorpActDBManager:
         return actions
 
 
-def update():
+def update(engine, download_folder):
     print("Updating BSE corp actions..")
-    downloader = BseCorpActDBManager()
+    downloader = BseCorpActDBManager(engine, download_folder)
     downloader.update()
-
-
-def test():
-    dbmgr = BseCorpActDBManager()
-    dbmgr.update()
-    df = dbmgr.get_corp_actions("INFY")
-    print(df)
-
-
-def main():
-    update()
-    # test()
-
-
-if __name__ == "__main__":
-    main()

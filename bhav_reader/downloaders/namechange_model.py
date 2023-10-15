@@ -1,8 +1,7 @@
 import sqlalchemy as db
 import pandas as pd
 
-from config import SQL_CON, DOWNLOAD_FOLDER
-from model import Base, Symbol, NameChange
+from bhav_reader.model import Base, Symbol, NameChange
 
 
 class NameChangeManager:
@@ -29,7 +28,7 @@ class NameChangeManager:
         return df
 
     def clean_data(self, df: pd.DataFrame):
-        sym = pd.read_sql_table(Symbol.__tablename__, SQL_CON)
+        sym = pd.read_sql_table(Symbol.__tablename__, self.session.bind)
         # left join 1
         df = df.merge(
             sym, how="left", left_on="old_symbol", right_on="symbol_name"
@@ -123,8 +122,8 @@ class NameChangeManager:
         return self.get_all_symbol_ids(self.get_id_of_symbol(symbol_name))
 
 
-def test():
-    symMgr = NameChangeManager(SQL_CON)
+def test(engine):
+    symMgr = NameChangeManager(engine)
     l = symMgr.get_ids_of_symbol("INFY")
     print(symMgr.sym_ids_to_sym_names(l))
     print(symMgr.get_latest_name("INFY"))
@@ -146,9 +145,9 @@ def test():
     print(symMgr.get_latest_name("TCS"))
 
 
-def update():
+def update(engine):
     print("Updating nameChangeModel")
-    nameChange = NameChangeManager(SQL_CON)
+    nameChange = NameChangeManager(engine)
     nameChange.update()
 
 

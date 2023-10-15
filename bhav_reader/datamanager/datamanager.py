@@ -4,20 +4,16 @@ from sqlalchemy.sql import exists
 import mplfinance as mpf
 from datetime import date, datetime
 
-from model import Symbol, Data, Series
-from config import SQL_CON, DOWNLOAD_FOLDER
-
-# import nameChangeModel as nameChange
-# from BseCorpAction import BseCorpActDBManager
-from downloaders.namechange_model import NameChangeManager
-from downloaders.bse_corpaction import BseCorpActDBManager
+from bhav_reader.model import Symbol, Data, Series
+from bhav_reader.downloaders.namechange_model import NameChangeManager
+from bhav_reader.downloaders.bse_corpaction import BseCorpActDBManager
 
 
 class DataManager:
-    def __init__(self, session: db.orm.Session):
+    def __init__(self, session: db.orm.Session, download_folder: str):
         self.session = session
         self.nameChange = NameChangeManager(session.get_bind())
-        self.bseCorpAct = BseCorpActDBManager()
+        self.bseCorpAct = BseCorpActDBManager(session.get_bind(), download_folder)
 
     def generate_symbol_id_filter(self, symbol_name: str, table):
         ids = self.nameChange.get_ids_of_symbol(symbol_name)
@@ -121,24 +117,24 @@ class DataManager:
         return a
 
 
-def test_get_corp_action():
-    session = db.orm.Session(SQL_CON)
+def test_get_corp_action(session):
+    session = db.orm.Session(session)
     dMgr = DataManager(session)
     df = dMgr.get_corpAction_data("TCS")
     print(df)
     df.to_csv("corp_data_test.csv")
 
 
-def test_is_symbol_valid():
-    session = db.orm.Session(SQL_CON)
+def test_is_symbol_valid(engine):
+    session = db.orm.Session(engine)
     dMgr = DataManager(session)
     tickers = ["asdf", "Tcs", "TCS", "fffff", "HDFC"]
     for t in tickers:
         print(t, dMgr.is_ticker_valid(t))
 
 
-def test_date_filter():
-    session = db.orm.Session(SQL_CON)
+def test_date_filter(engine):
+    session = db.orm.Session(engine)
     dMgr = DataManager(session)
     fromDate = date(2022, 1, 1)
     toDate = date(2023, 1, 10)
@@ -146,8 +142,7 @@ def test_date_filter():
     print(df)
 
 
-def main():
-    session = db.orm.Session(SQL_CON)
+def main(session):
     dMgr = DataManager(session)
     # dMgr.plot_equity("HINDUNILVR")
     # dMgr.plot_equity("YAARII")
@@ -159,11 +154,3 @@ def test_corp_action_parse():
     cMgr = BseCorpActDBManager()
     data = cMgr.get_corp_actions("INFY")
     print(data)
-
-
-if __name__ == "__main__":
-    main()
-    # test_get_corp_action()
-    # test_is_symbol_valid()
-    # test_date_filter()
-    test_corp_action_parse()
