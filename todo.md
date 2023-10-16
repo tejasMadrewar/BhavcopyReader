@@ -4,6 +4,7 @@
 
 # task
 
+- download historical nav of index
 - save ticker data to the csv file
 
 # Finished
