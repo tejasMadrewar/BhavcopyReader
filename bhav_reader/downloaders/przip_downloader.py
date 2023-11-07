@@ -18,8 +18,8 @@ def PRZip_download_for_day(day, download_folder):
     for i in range(5):
         try:
             r = requests.get(url, timeout=5, allow_redirects=False)
-            if r.status_code == 404 or r.status_code == 302:
-                print(f"\tCheck if its a Holiday {PRZip_filename}")
+            if r.status_code == 404 or r.status_code == 302 or r.status_code != 200:
+                print(f"\tCheck if its a Holiday {PRZip_filename} {r.status_code}")
                 return
             with open(file_path, "wb") as f:
                 f.write(r.content)

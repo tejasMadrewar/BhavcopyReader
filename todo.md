@@ -6,6 +6,7 @@
 
 - download historical nav of index
 - save ticker data to the csv file
+- save index constituents to db
 
 # Finished
 
